@@ -8,6 +8,7 @@ import com.fundcat.api.fund.FundRepository;
 import com.fundcat.api.fund.FundEstimateRepository;
 import com.fundcat.api.fund.FundSnapshotEntity;
 import com.fundcat.api.fund.FundSnapshotRepository;
+import com.fundcat.api.ops.OpsService;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
@@ -32,6 +33,7 @@ public class PortfolioService {
     private final FundRepository fundRepository;
     private final FundSnapshotRepository fundSnapshotRepository;
     private final FundEstimateRepository fundEstimateRepository;
+    private final OpsService opsService;
 
     public PortfolioService(
         WatchlistRepository watchlistRepository,
@@ -44,7 +46,8 @@ public class PortfolioService {
         AlertRuleRepository alertRuleRepository,
         FundRepository fundRepository,
         FundSnapshotRepository fundSnapshotRepository,
-        FundEstimateRepository fundEstimateRepository
+        FundEstimateRepository fundEstimateRepository,
+        OpsService opsService
     ) {
         this.watchlistRepository = watchlistRepository;
         this.portfolioRepository = portfolioRepository;
@@ -57,9 +60,11 @@ public class PortfolioService {
         this.fundRepository = fundRepository;
         this.fundSnapshotRepository = fundSnapshotRepository;
         this.fundEstimateRepository = fundEstimateRepository;
+        this.opsService = opsService;
     }
 
     public List<PortfolioDtos.WatchlistItemResponse> getWatchlist(CurrentUser currentUser) {
+        boolean estimateReferenceEnabled = opsService.isEnabled("estimate_reference");
         return watchlistRepository.findByUserIdOrderByCreatedAtDesc(currentUser.id()).stream()
             .map(item -> {
                 FundEntity fund = fundRepository.findByCode(item.getFundCode())
@@ -72,9 +77,9 @@ public class PortfolioService {
                     fund.getCode(),
                     fund.getName(),
                     item.getNote(),
-                    round(estimate.getEstimatedGrowth()),
+                    round(estimateReferenceEnabled ? estimate.getEstimatedGrowth() : snapshot.getDayGrowth()),
                     round(snapshot.getUnitNav()),
-                    round(estimate.getEstimatedNav())
+                    round(estimateReferenceEnabled ? estimate.getEstimatedNav() : snapshot.getUnitNav())
                 );
             }).toList();
     }
@@ -100,9 +105,9 @@ public class PortfolioService {
             fund.getCode(),
             fund.getName(),
             request.note(),
-            round(estimate.getEstimatedGrowth()),
+            round(opsService.isEnabled("estimate_reference") ? estimate.getEstimatedGrowth() : snapshot.getDayGrowth()),
             round(snapshot.getUnitNav()),
-            round(estimate.getEstimatedNav())
+            round(opsService.isEnabled("estimate_reference") ? estimate.getEstimatedNav() : snapshot.getUnitNav())
         );
     }
 

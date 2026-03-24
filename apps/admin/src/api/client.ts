@@ -1,12 +1,14 @@
-import type { FeatureFlag } from '@fundcat/contracts'
+import type { AlertRule, FeatureFlag, ImportJob, WeeklyReport } from '@fundcat/contracts'
+
+export type ProviderStatus = {
+  providerKey: string
+  status: string
+  notes: string
+}
 
 type OpsSummary = {
   featureFlags: FeatureFlag[]
-  providers: Array<{
-    providerKey: string
-    status: string
-    notes: string
-  }>
+  providers: ProviderStatus[]
 }
 
 const ACCESS_TOKEN_KEY = 'fundcat.access-token'
@@ -45,6 +47,15 @@ export const api = {
     return response
   },
   summary: () => request<OpsSummary>('/ops/summary'),
+  featureFlags: () => request<FeatureFlag[]>('/ops/feature-flags'),
+  toggleFeatureFlag: (code: string, enabled: boolean) =>
+    request<FeatureFlag>(`/ops/feature-flags/${code}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ enabled }),
+    }),
+  importJobs: () => request<ImportJob[]>('/import-jobs'),
+  reports: () => request<WeeklyReport[]>('/reports/weekly'),
+  alerts: () => request<AlertRule[]>('/alerts'),
   clearToken: () => localStorage.removeItem(ACCESS_TOKEN_KEY),
   hasToken: () => Boolean(localStorage.getItem(ACCESS_TOKEN_KEY)),
 }

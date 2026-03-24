@@ -33,6 +33,12 @@ public class OpsService {
             .toList();
     }
 
+    public boolean isEnabled(String code) {
+        return featureFlagRepository.findByCode(code)
+            .map(FeatureFlagEntity::isEnabled)
+            .orElse(false);
+    }
+
     public OpsDtos.FeatureFlagResponse toggle(String code, boolean enabled) {
         FeatureFlagEntity flag = featureFlagRepository.findByCode(code)
             .orElseThrow(() -> new NotFoundException("Feature flag not found"));
