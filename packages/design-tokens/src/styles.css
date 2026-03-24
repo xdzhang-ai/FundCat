@@ -1,0 +1,18 @@
+:root {
+  --fc-color-ink: #f8f7f2;
+  --fc-color-muted: #98a3b3;
+  --fc-color-surface: #12151c;
+  --fc-color-surface-raised: #191d26;
+  --fc-color-surface-glass: rgba(22, 26, 34, 0.78);
+  --fc-color-border: rgba(255, 255, 255, 0.08);
+  --fc-color-accent: #f3ba2f;
+  --fc-color-accent-soft: #fef3c7;
+  --fc-color-success: #22c55e;
+  --fc-color-danger: #f97316;
+  --fc-color-info: #38bdf8;
+  --fc-radius-card: 28px;
+  --fc-radius-pill: 999px;
+  --fc-shadow-card: 0 24px 80px rgba(8, 12, 20, 0.48);
+  --fc-font-display: 'Space Grotesk', 'Avenir Next', 'Segoe UI', sans-serif;
+  --fc-font-body: 'IBM Plex Sans', 'Helvetica Neue', sans-serif;
+}

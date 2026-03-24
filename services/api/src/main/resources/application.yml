@@ -1,0 +1,45 @@
+spring:
+  application:
+    name: fundcat-api
+  datasource:
+    url: jdbc:h2:mem:fundcat;MODE=MySQL;DB_CLOSE_DELAY=-1;DATABASE_TO_LOWER=TRUE
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: none
+    properties:
+      hibernate:
+        format_sql: true
+  flyway:
+    enabled: true
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+  jackson:
+    time-zone: UTC
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
+server:
+  port: 8080
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+
+fundcat:
+  auth:
+    access-token-ttl-minutes: 240
+    refresh-token-ttl-days: 14

@@ -1,0 +1,19 @@
+{
+  "name": "fundcat",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:web": "npm run dev --workspace @fundcat/web",
+    "dev:admin": "npm run dev --workspace @fundcat/admin",
+    "build:web": "npm run build --workspace @fundcat/web",
+    "build:admin": "npm run build --workspace @fundcat/admin",
+    "build": "npm run build:web && npm run build:admin",
+    "lint:web": "npm run lint --workspace @fundcat/web",
+    "lint:admin": "npm run lint --workspace @fundcat/admin",
+    "lint": "npm run lint:web && npm run lint:admin"
+  }
+}
