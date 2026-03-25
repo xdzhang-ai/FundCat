@@ -6,4 +6,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface NavHistoryRepository extends JpaRepository<NavHistoryEntity, String> {
 
     List<NavHistoryEntity> findTop30ByFundCodeOrderByTradeDateDesc(String fundCode);
+
+    List<NavHistoryEntity> findByFundCodeOrderByTradeDateAsc(String fundCode);
 }

@@ -148,6 +148,10 @@ public class PortfolioService {
         PortfolioEntity portfolio = validatePortfolio(currentUser.id(), request.portfolioId());
         FundEntity fund = fundRepository.findByCode(request.fundCode())
             .orElseThrow(() -> new NotFoundException("Fund not found"));
+        FundSnapshotEntity snapshot = fundSnapshotRepository.findTopByFundCodeOrderByUpdatedAtDesc(fund.getCode())
+            .orElseThrow(() -> new NotFoundException("Fund snapshot not found"));
+        FundEstimateEntity estimate = fundEstimateRepository.findTopByFundCodeOrderByEstimatedAtDesc(fund.getCode())
+            .orElseThrow(() -> new NotFoundException("Fund estimate not found"));
         PaperOrderEntity entity = new PaperOrderEntity();
         entity.setId(UUID.randomUUID().toString());
         entity.setPortfolioId(portfolio.getId());
@@ -161,6 +165,7 @@ public class PortfolioService {
         entity.setExecutedAt(LocalDateTime.now());
         entity.setNote(request.note());
         paperOrderRepository.save(entity);
+        applyOrderToHolding(portfolio.getId(), fund, snapshot, estimate, request, entity.getExecutedAt());
         return new PortfolioDtos.PaperOrderResponse(
             entity.getId(),
             entity.getFundCode(),
@@ -302,13 +307,80 @@ public class PortfolioService {
                 round(holding.getCurrentValue()),
                 round(holding.getPnl()),
                 round(holding.getAllocation()),
-                holding.getSource()
+                holding.getSource(),
+                holding.getUpdatedAt().toString()
             )).toList()
         );
     }
 
     public Map<String, PortfolioDtos.PortfolioSummaryResponse> portfolioMap(CurrentUser currentUser) {
         return getPortfolios(currentUser).stream().collect(Collectors.toMap(PortfolioDtos.PortfolioSummaryResponse::id, Function.identity()));
+    }
+
+    private void applyOrderToHolding(
+        String portfolioId,
+        FundEntity fund,
+        FundSnapshotEntity snapshot,
+        FundEstimateEntity estimate,
+        PortfolioDtos.CreatePaperOrderRequest request,
+        LocalDateTime executedAt
+    ) {
+        HoldingLotEntity holding = holdingLotRepository.findByPortfolioIdAndFundCode(portfolioId, fund.getCode())
+            .orElseGet(() -> {
+                HoldingLotEntity entity = new HoldingLotEntity();
+                entity.setId(UUID.randomUUID().toString());
+                entity.setPortfolioId(portfolioId);
+                entity.setFundCode(fund.getCode());
+                entity.setFundName(fund.getName());
+                entity.setShares(0);
+                entity.setAverageCost(0);
+                entity.setCurrentValue(0);
+                entity.setPnl(0);
+                entity.setAllocation(0);
+                entity.setSource("manual");
+                entity.setImported(false);
+                entity.setUpdatedAt(executedAt);
+                return entity;
+            });
+
+        double currentPrice = opsService.isEnabled("estimate_reference") ? estimate.getEstimatedNav() : snapshot.getUnitNav();
+        double existingShares = holding.getShares();
+        double existingAverageCost = holding.getAverageCost();
+        String orderType = request.orderType().toUpperCase();
+        double nextShares;
+        double nextAverageCost;
+
+        if ("BUY".equals(orderType)) {
+            nextShares = existingShares + request.shares();
+            double totalCostBasis = (existingShares * existingAverageCost) + request.amount() + request.fee();
+            nextAverageCost = nextShares == 0 ? 0 : totalCostBasis / nextShares;
+        } else {
+            if (existingShares <= 0 || request.shares() > existingShares) {
+                throw new IllegalArgumentException("持仓份额不足，无法模拟卖出");
+            }
+            nextShares = existingShares - request.shares();
+            nextAverageCost = nextShares == 0 ? 0 : existingAverageCost;
+        }
+
+        if (nextShares == 0) {
+            holdingLotRepository.delete(holding);
+        } else {
+            holding.setShares(nextShares);
+            holding.setAverageCost(nextAverageCost);
+            holding.setCurrentValue(nextShares * currentPrice);
+            holding.setPnl((nextShares * currentPrice) - (nextShares * nextAverageCost));
+            holding.setUpdatedAt(executedAt);
+            holdingLotRepository.save(holding);
+        }
+
+        rebalanceAllocations(portfolioId);
+    }
+
+    private void rebalanceAllocations(String portfolioId) {
+        List<HoldingLotEntity> holdings = holdingLotRepository.findByPortfolioIdOrderByAllocationDesc(portfolioId);
+        double marketValue = holdings.stream().mapToDouble(HoldingLotEntity::getCurrentValue).sum();
+        holdings.forEach(holding -> holding.setAllocation(marketValue == 0 ? 0 : holding.getCurrentValue() / marketValue));
+        holdingLotRepository.saveAll(holdings);
     }
 
     private double round(double value) {

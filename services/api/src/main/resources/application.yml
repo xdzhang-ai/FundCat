@@ -25,6 +25,9 @@ spring:
     redis:
       host: localhost
       port: 6379
+      password: ${REDIS_PASSWORD:}
+      repositories:
+        enabled: false
 
 server:
   port: 8080
@@ -43,3 +46,4 @@ fundcat:
   auth:
     access-token-ttl-minutes: 240
     refresh-token-ttl-days: 14
+    session-store: ${AUTH_SESSION_STORE:memory}

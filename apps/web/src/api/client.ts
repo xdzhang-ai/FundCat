@@ -12,6 +12,7 @@ import type {
 
 const API_BASE = '/api/v1'
 const ACCESS_TOKEN_KEY = 'fundcat.access-token'
+const REFRESH_TOKEN_KEY = 'fundcat.refresh-token'
 
 function getAccessToken() {
   return localStorage.getItem(ACCESS_TOKEN_KEY)
@@ -47,7 +48,16 @@ export const api = {
       body: JSON.stringify(payload),
     })
     localStorage.setItem(ACCESS_TOKEN_KEY, response.accessToken)
+    localStorage.setItem(REFRESH_TOKEN_KEY, response.refreshToken)
     return response
+  },
+  logout: async () => {
+    const token = getAccessToken()
+    if (!token) return
+    await fetch(`${API_BASE}/auth/logout`, {
+      method: 'POST',
+      headers: withHeaders(),
+    }).catch(() => undefined)
   },
   dashboard: () => request<DashboardResponse>('/dashboard'),
   funds: (query = '') =>
@@ -78,6 +88,7 @@ export const api = {
 export const authStorage = {
   clear() {
     localStorage.removeItem(ACCESS_TOKEN_KEY)
+    localStorage.removeItem(REFRESH_TOKEN_KEY)
   },
   hasToken() {
     return Boolean(getAccessToken())

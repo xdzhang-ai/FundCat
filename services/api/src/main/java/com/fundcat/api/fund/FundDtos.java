@@ -10,6 +10,22 @@ public final class FundDtos {
     public record TrendPoint(String date, double value) {
     }
 
+    public record QuarterlyHoldingResponse(
+        String name,
+        String symbol,
+        double dailyChange,
+        double positionRatio,
+        Double previousChange,
+        String changeLabel
+    ) {
+    }
+
+    public record IndustryExposureResponse(String name, double weight) {
+    }
+
+    public record TopHoldingResponse(String name, String symbol, double dailyChange) {
+    }
+
     public record FundCardResponse(
         String code,
         String name,
@@ -43,10 +59,12 @@ public final class FundDtos {
         double assetSize,
         double stockRatio,
         double bondRatio,
-        List<String> topHoldings,
+        List<TopHoldingResponse> topHoldings,
         List<TrendPoint> navHistory,
         List<TrendPoint> estimateHistory,
-        List<String> comparisonLabels
+        List<String> comparisonLabels,
+        List<QuarterlyHoldingResponse> quarterlyHoldings,
+        List<IndustryExposureResponse> industryDistribution
     ) {
     }
 }

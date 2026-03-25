@@ -7,6 +7,11 @@
     "packages/*"
   ],
   "scripts": {
+    "infra:up": "sh ./scripts/infra-up.sh",
+    "infra:down": "sh ./scripts/infra-down.sh",
+    "dev:api:h2": "sh ./scripts/run-api.sh h2",
+    "dev:api:redis": "sh ./scripts/run-api.sh redis",
+    "dev:api:mysql": "sh ./scripts/run-api.sh mysql",
     "dev:web": "npm run dev --workspace @fundcat/web",
     "dev:admin": "npm run dev --workspace @fundcat/admin",
     "build:web": "npm run build --workspace @fundcat/web",

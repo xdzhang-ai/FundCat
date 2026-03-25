@@ -1,7 +1,7 @@
 create table users (
   id varchar(36) primary key,
   display_name varchar(120) not null,
-  phone varchar(32) not null unique,
+  username varchar(64) not null unique,
   password_hash varchar(255) not null,
   risk_mode varchar(32) not null,
   created_at timestamp not null,

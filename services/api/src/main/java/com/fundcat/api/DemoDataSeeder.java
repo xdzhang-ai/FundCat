@@ -99,7 +99,7 @@ public class DemoDataSeeder implements CommandLineRunner {
         UserEntity user = new UserEntity();
         user.setId("user-demo-001");
         user.setDisplayName("Demo Analyst");
-        user.setPhone("10000000000");
+        user.setUsername("demo_analyst");
         user.setPasswordHash(passwordEncoder.encode("ChangeMe123!"));
         user.setRiskMode("research");
         user.setCreatedAt(now.minusDays(21));
@@ -110,7 +110,9 @@ public class DemoDataSeeder implements CommandLineRunner {
             featureFlag("estimate_reference", "盘中参考估值", true, "research", "展示盘中参考估值和涨跌幅，默认仅研究环境开启", "high", now.minusDays(14)),
             featureFlag("risk_signal_board", "风险提示榜单", true, "research", "展示加减仓、提醒和实验性榜单能力", "high", now.minusDays(10)),
             featureFlag("ocr_import", "OCR 导入", true, "research", "支持多平台持仓截图识别和校正导入", "medium", now.minusDays(8)),
-            featureFlag("weekly_digest", "周报摘要", true, "research", "自动生成每周盈亏与风险提示摘要", "low", now.minusDays(4))
+            featureFlag("weekly_digest", "周报摘要", true, "research", "自动生成每周盈亏与风险提示摘要", "low", now.minusDays(4)),
+            featureFlag("quarterly_holdings", "上季度持仓", true, "research", "展示基金上季度披露的主要股票持仓", "medium", now.minusDays(3)),
+            featureFlag("industry_distribution", "行业分布", true, "research", "展示基金股票仓位对应的行业分布", "medium", now.minusDays(2))
         ));
 
         List<FundEntity> funds = List.of(

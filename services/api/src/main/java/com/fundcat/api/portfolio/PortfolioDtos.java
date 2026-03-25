@@ -29,7 +29,8 @@ public final class PortfolioDtos {
         double currentValue,
         double pnl,
         double allocation,
-        String source
+        String source,
+        String updatedAt
     ) {
     }
 

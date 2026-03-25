@@ -10,14 +10,14 @@ public final class AuthDtos {
     }
 
     public record LoginRequest(
-        @NotBlank @Pattern(regexp = "^[0-9+\\-]{6,20}$", message = "phone is invalid") String phone,
+        @NotBlank @Pattern(regexp = "^[A-Za-z0-9_]{3,32}$", message = "username is invalid") String username,
         @NotBlank @Size(min = 6, max = 100) String password
     ) {
     }
 
     public record RegisterRequest(
         @NotBlank @Size(min = 2, max = 30) String displayName,
-        @NotBlank @Pattern(regexp = "^[0-9+\\-]{6,20}$", message = "phone is invalid") String phone,
+        @NotBlank @Pattern(regexp = "^[A-Za-z0-9_]{3,32}$", message = "username is invalid") String username,
         @NotBlank @Size(min = 6, max = 100) String password
     ) {
     }
@@ -25,7 +25,7 @@ public final class AuthDtos {
     public record RefreshRequest(@NotBlank String refreshToken) {
     }
 
-    public record UserProfileResponse(String id, String displayName, String phone, String riskMode) {
+    public record UserProfileResponse(String id, String displayName, String username, String riskMode) {
     }
 
     public record AuthResponse(

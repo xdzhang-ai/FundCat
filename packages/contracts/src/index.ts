@@ -3,10 +3,30 @@ export type TrendPoint = {
   value: number
 }
 
+export type QuarterlyHolding = {
+  name: string
+  symbol: string
+  dailyChange: number
+  positionRatio: number
+  previousChange: number | null
+  changeLabel?: string
+}
+
+export type IndustryExposure = {
+  name: string
+  weight: number
+}
+
+export type TopHolding = {
+  name: string
+  symbol: string
+  dailyChange: number
+}
+
 export type UserProfile = {
   id: string
   displayName: string
-  phone: string
+  username: string
   riskMode: 'research'
 }
 
@@ -40,10 +60,12 @@ export type FundDetail = FundCard & {
   assetSize: number
   stockRatio: number
   bondRatio: number
-  topHoldings: string[]
+  topHoldings: TopHolding[]
   navHistory: TrendPoint[]
   estimateHistory: TrendPoint[]
   comparisonLabels: string[]
+  quarterlyHoldings: QuarterlyHolding[]
+  industryDistribution: IndustryExposure[]
 }
 
 export type WatchlistItem = {
@@ -65,6 +87,7 @@ export type HoldingLot = {
   pnl: number
   allocation: number
   source: string
+  updatedAt: string
 }
 
 export type PortfolioSummary = {
@@ -156,7 +179,7 @@ export type AuthResponse = AuthTokens & {
 }
 
 export type LoginPayload = {
-  phone: string
+  username: string
   password: string
 }
 

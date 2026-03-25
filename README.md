@@ -33,7 +33,7 @@ It is organized as a monorepo with a Java 21 backend, React + TypeScript fronten
 
 ## Demo Credentials
 
-- Phone: `10000000000`
+- Username: `demo_analyst`
 - Password: `ChangeMe123!`
 
 These values are seeded for local development only. Replace them before sharing the environment or publishing any deployment.
@@ -62,9 +62,7 @@ npm_config_cache=.npm-cache npm install
 ### 2. Start the API with the default H2 profile
 
 ```bash
-cd services/api
-export JAVA_HOME=$(/usr/libexec/java_home -v 21)
-mvn spring-boot:run
+npm run dev:api:h2
 ```
 
 ### 3. Start the web app
@@ -109,7 +107,7 @@ The API MySQL profile consumes the `DB_*` variables.
 ### 2. Start MySQL and Redis
 
 ```bash
-docker compose up -d
+npm run infra:up
 ```
 
 Useful commands:
@@ -118,19 +116,29 @@ Useful commands:
 docker compose ps
 docker compose logs -f mysql
 docker compose logs -f redis
-docker compose down
-docker compose down -v
+npm run infra:down
+sh ./scripts/infra-down.sh -v
 ```
 
-### 3. Run the API against MySQL
+### 3. Run the API against Docker Redis
 
 ```bash
-cd services/api
-export JAVA_HOME=$(/usr/libexec/java_home -v 21)
-mvn spring-boot:run -Dspring-boot.run.profiles=mysql
+npm run dev:api:redis
 ```
 
-If you changed ports or credentials in `.env`, export matching `DB_*` values before starting the API.
+This mode uses:
+
+- `.env` for `REDIS_*` and `AUTH_SESSION_STORE`
+- Docker Redis on port `6379`
+- the default H2 in-memory database
+
+### 4. Run the API against MySQL + Redis
+
+```bash
+npm run dev:api:mysql
+```
+
+If you changed ports or credentials in `.env`, the helper scripts will load matching `DB_*`, `REDIS_*`, and `AUTH_SESSION_STORE` values automatically.
 
 ## Useful Local Endpoints
 

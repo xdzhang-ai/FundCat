@@ -3,6 +3,7 @@ package com.fundcat.api.auth;
 import com.fundcat.api.common.NotFoundException;
 import java.time.LocalDateTime;
 import java.util.UUID;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -20,26 +21,31 @@ public class AuthService {
     }
 
     public AuthDtos.AuthResponse register(AuthDtos.RegisterRequest request) {
-        if (userRepository.findByPhone(request.phone()).isPresent()) {
-            throw new IllegalArgumentException("Phone already registered");
+        if (userRepository.findByUsername(request.username()).isPresent()) {
+            throw new IllegalArgumentException("用户名已存在");
         }
         UserEntity user = new UserEntity();
         user.setId(UUID.randomUUID().toString());
         user.setDisplayName(request.displayName());
-        user.setPhone(request.phone());
+        user.setUsername(request.username());
         user.setPasswordHash(passwordEncoder.encode(request.password()));
         user.setRiskMode("research");
         user.setCreatedAt(LocalDateTime.now());
         user.setUpdatedAt(LocalDateTime.now());
-        UserEntity saved = userRepository.save(user);
+        UserEntity saved;
+        try {
+            saved = userRepository.save(user);
+        } catch (DataIntegrityViolationException exception) {
+            throw new IllegalArgumentException("用户名已存在");
+        }
         return toAuthResponse(saved, tokenService.issue(saved));
     }
 
     public AuthDtos.AuthResponse login(AuthDtos.LoginRequest request) {
-        UserEntity user = userRepository.findByPhone(request.phone())
+        UserEntity user = userRepository.findByUsername(request.username())
             .orElseThrow(() -> new NotFoundException("User not found"));
         if (!passwordEncoder.matches(request.password(), user.getPasswordHash())) {
-            throw new IllegalArgumentException("Phone or password is incorrect");
+            throw new IllegalArgumentException("Username or password is incorrect");
         }
         return toAuthResponse(user, tokenService.issue(user));
     }
@@ -60,6 +66,11 @@ public class AuthService {
         return toProfile(user);
     }
 
+    public void logout(String authorizationHeader) {
+        String accessToken = extractBearerToken(authorizationHeader);
+        tokenService.revokeAccessToken(accessToken);
+    }
+
     private AuthDtos.AuthResponse toAuthResponse(UserEntity user, TokenService.IssuedTokens issuedTokens) {
         return new AuthDtos.AuthResponse(
             issuedTokens.accessToken(),
@@ -70,6 +81,13 @@ public class AuthService {
     }
 
     private AuthDtos.UserProfileResponse toProfile(UserEntity user) {
-        return new AuthDtos.UserProfileResponse(user.getId(), user.getDisplayName(), user.getPhone(), user.getRiskMode());
+        return new AuthDtos.UserProfileResponse(user.getId(), user.getDisplayName(), user.getUsername(), user.getRiskMode());
+    }
+
+    private String extractBearerToken(String authorizationHeader) {
+        if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
+            throw new IllegalArgumentException("Missing bearer token");
+        }
+        return authorizationHeader.substring("Bearer ".length()).trim();
     }
 }

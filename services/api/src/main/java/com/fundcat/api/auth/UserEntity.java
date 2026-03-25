@@ -17,7 +17,7 @@ public class UserEntity {
     private String displayName;
 
     @Column(nullable = false, unique = true)
-    private String phone;
+    private String username;
 
     @Column(name = "password_hash", nullable = false)
     private String passwordHash;
@@ -47,12 +47,12 @@ public class UserEntity {
         this.displayName = displayName;
     }
 
-    public String getPhone() {
-        return phone;
+    public String getUsername() {
+        return username;
     }
 
-    public void setPhone(String phone) {
-        this.phone = phone;
+    public void setUsername(String username) {
+        this.username = username;
     }
 
     public String getPasswordHash() {

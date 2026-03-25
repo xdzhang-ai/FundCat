@@ -2,6 +2,7 @@ package com.fundcat.api.config;
 
 import com.fundcat.api.auth.AuthProperties;
 import com.fundcat.api.auth.BearerTokenFilter;
+import jakarta.servlet.http.HttpServletResponse;
 import java.util.List;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -35,6 +36,9 @@ public class SecurityConfig {
             .cors(Customizer.withDefaults())
             .headers(headers -> headers.frameOptions(frameOptions -> frameOptions.sameOrigin()))
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            .exceptionHandling(exception -> exception.authenticationEntryPoint(
+                (request, response, authException) -> response.sendError(HttpServletResponse.SC_UNAUTHORIZED)
+            ))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(
                     "/h2-console/**",
@@ -42,7 +46,9 @@ public class SecurityConfig {
                     "/swagger-ui/**",
                     "/v3/api-docs/**",
                     "/actuator/health",
-                    "/api/v1/auth/**"
+                    "/api/v1/auth/register",
+                    "/api/v1/auth/login",
+                    "/api/v1/auth/refresh"
                 ).permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/funds/**").authenticated()
                 .requestMatchers("/api/v1/**").authenticated()

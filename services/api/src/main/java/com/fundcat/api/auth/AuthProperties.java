@@ -7,6 +7,7 @@ public class AuthProperties {
 
     private long accessTokenTtlMinutes = 240;
     private long refreshTokenTtlDays = 14;
+    private String sessionStore = "memory";
 
     public long getAccessTokenTtlMinutes() {
         return accessTokenTtlMinutes;
@@ -22,5 +23,13 @@ public class AuthProperties {
 
     public void setRefreshTokenTtlDays(long refreshTokenTtlDays) {
         this.refreshTokenTtlDays = refreshTokenTtlDays;
+    }
+
+    public String getSessionStore() {
+        return sessionStore;
+    }
+
+    public void setSessionStore(String sessionStore) {
+        this.sessionStore = sessionStore;
     }
 }
