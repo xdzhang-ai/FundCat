@@ -16,7 +16,7 @@ It is organized as a monorepo with a Java 21 backend, React + TypeScript fronten
 ├── packages/
 │   ├── contracts/          # Shared TypeScript DTO contracts
 │   └── design-tokens/      # Shared color, spacing, typography tokens
-├── services/
+├── app/
 │   └── api/                # Java 21 + Spring Boot API
 ├── docker-compose.yml      # MySQL + Redis infrastructure services
 └── .env.example            # Example local infrastructure variables
@@ -62,21 +62,21 @@ npm_config_cache=.npm-cache npm install
 ### 2. Start the API with the default H2 profile
 
 ```bash
-npm run dev:api:h2
+sh ./scripts/run-api.sh h2
 ```
 
 ### 3. Start the web app
 
 ```bash
-cd apps/web
-npm_config_cache=../../.npm-cache npm run dev
+cd frontend
+npm_config_cache=./.npm-cache npm run dev:web
 ```
 
 ### 4. Start the admin app
 
 ```bash
-cd apps/admin
-npm_config_cache=../../.npm-cache npm run dev
+cd frontend
+npm_config_cache=./.npm-cache npm run dev:admin
 ```
 
 ## Docker Infrastructure
@@ -84,7 +84,7 @@ npm_config_cache=../../.npm-cache npm run dev
 This repository uses `docker compose` for infrastructure services only:
 
 - MySQL 8.4
-- Redis 7.4
+- Redis 8.0
 
 The API, web app, and admin app run from source by default.
 
@@ -150,9 +150,9 @@ If you changed ports or credentials in `.env`, the helper scripts will load matc
 
 ## Verification
 
-- Web build: `cd apps/web && npm_config_cache=../../.npm-cache npm run build`
-- Admin build: `cd apps/admin && npm_config_cache=../../.npm-cache npm run build`
-- API tests: `cd services/api && export JAVA_HOME=$(/usr/libexec/java_home -v 21) && mvn test`
+- Web build: `cd frontend && npm_config_cache=./.npm-cache npm run build:web`
+- Admin build: `cd frontend && npm_config_cache=./.npm-cache npm run build:admin`
+- API tests: `cd app && export JAVA_HOME=$(/usr/libexec/java_home -v 21) && mvn test`
 
 ## Configuration Notes
 

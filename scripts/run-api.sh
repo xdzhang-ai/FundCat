@@ -3,7 +3,7 @@
 set -eu
 
 ROOT_DIR=$(CDPATH= cd -- "$(dirname "$0")/.." && pwd)
-API_DIR="$ROOT_DIR/services/api"
+API_DIR="$ROOT_DIR/app"
 MODE="${1:-h2}"
 
 if [ -f "$ROOT_DIR/.env" ]; then
