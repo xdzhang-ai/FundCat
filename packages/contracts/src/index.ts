@@ -51,6 +51,8 @@ export type FundCard = {
   estimatedNav: number
   estimatedGrowth: number
   referenceOnly: boolean
+  watchlisted: boolean
+  held: boolean
 }
 
 export type FundDetail = FundCard & {

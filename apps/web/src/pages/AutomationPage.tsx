@@ -1,71 +1,102 @@
-import type { DashboardResponse } from '@fundcat/contracts'
+import type { DashboardResponse, SipPlan } from '@fundcat/contracts'
+import { useMemo, useState } from 'react'
 import { SectionCard } from '../components/SectionCard'
-import { Panel, Row } from '../components/workspace/WebUi'
+import { formatCurrency } from '../lib/fundInsights'
+
+type SipStatus = '生效' | '暂停' | '停止'
+type SipFilter = '全部' | SipStatus
+
+const sipFilters: SipFilter[] = ['全部', '生效', '暂停', '停止']
 
 export function AutomationPage({
   dashboard,
-  isFlagEnabled,
 }: {
   dashboard: DashboardResponse
-  isFlagEnabled: (code: string) => boolean
 }) {
+  const [activeFilter, setActiveFilter] = useState<SipFilter>('全部')
+
+  const plans = useMemo(
+    () =>
+      dashboard.sipPlans.map((plan) => ({
+        ...plan,
+        status: resolveSipStatus(plan),
+      })),
+    [dashboard.sipPlans],
+  )
+
+  const visiblePlans = useMemo(
+    () => (activeFilter === '全部' ? plans : plans.filter((plan) => plan.status === activeFilter)),
+    [activeFilter, plans],
+  )
+
   return (
-    <SectionCard title="周报 / 定投 / OCR" eyebrow="Automation surfaces">
-      <div className="grid gap-4 xl:grid-cols-2">
-        <Panel title="">
-          {dashboard.sipPlans.map((plan) => (
-            <Row
-              key={plan.id}
-              title={plan.fundName}
-              meta={`${plan.cadence} · 下次 ${plan.nextRunAt.replace('T', ' ')}`}
-              value={`¥${plan.amount}`}
-            />
-          ))}
-        </Panel>
-        {isFlagEnabled('ocr_import') ? (
-          <Panel title="OCR 导入">
-            {dashboard.importJobs.map((job) => (
-              <Row
-                key={job.id}
-                title={job.fileName}
-                meta={`${job.sourcePlatform} · ${job.createdAt.replace('T', ' ')}`}
-                value={job.status}
-              />
-            ))}
-          </Panel>
-        ) : null}
-        {isFlagEnabled('weekly_digest') ? (
-          <Panel title="研究周报">
-            {dashboard.reports.map((report) => (
-              <div key={report.id} className="rounded-2xl bg-white/5 px-4 py-3">
-                <div className="flex items-center justify-between gap-4">
-                  <p className="font-medium text-white">{report.weekLabel}</p>
-                  <p className={report.returnRate >= 0 ? 'text-emerald-300' : 'text-orange-300'}>
-                    {report.returnRate >= 0 ? '+' : ''}
-                    {report.returnRate}%
-                  </p>
-                </div>
-                <p className="mt-2 text-sm text-slate-300">{report.summary}</p>
-                {isFlagEnabled('risk_signal_board') ? (
-                  <p className="mt-1 text-xs text-slate-500">{report.riskNote}</p>
-                ) : null}
+    <SectionCard title="定投计划" eyebrow="SIP plans">
+      <div className="flex flex-wrap gap-2">
+        {sipFilters.map((filter) => (
+          <button
+            key={filter}
+            type="button"
+            onClick={() => setActiveFilter(filter)}
+            className={`rounded-full border px-3 py-1.5 text-sm transition ${
+              activeFilter === filter
+                ? 'border-[color:var(--fc-color-accent)]/60 bg-[color:var(--fc-color-accent)]/10 text-white'
+                : 'border-white/10 bg-white/5 text-slate-300 hover:border-white/20 hover:text-white'
+            }`}
+          >
+            {filter}
+          </button>
+        ))}
+      </div>
+
+      <div className="mt-4 space-y-3">
+        {visiblePlans.map((plan) => (
+          <div key={plan.id} className="rounded-[1.5rem] border border-white/8 bg-white/5 px-4 py-4">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+              <div className="min-w-0">
+                <p className="truncate font-medium text-white">{plan.fundName}</p>
+                <p className="mt-1 text-sm text-slate-500">{plan.fundCode}</p>
               </div>
-            ))}
-          </Panel>
-        ) : null}
-        {isFlagEnabled('risk_signal_board') ? (
-          <Panel title="提醒规则">
-            {dashboard.alerts.map((alert) => (
-              <Row
-                key={alert.id}
-                title={alert.fundCode}
-                meta={`${alert.ruleType} · ${alert.channel}`}
-                value={`${alert.thresholdValue}%`}
-              />
-            ))}
-          </Panel>
+
+              <div className="flex flex-wrap items-center gap-3 lg:justify-end">
+                <div className="rounded-full border border-white/10 bg-slate-950/45 px-3 py-1.5 text-sm text-slate-200">
+                  定投金额 {formatCurrency(plan.amount)}
+                </div>
+                <span className={`rounded-full border px-3 py-1.5 text-sm ${statusToneClass(plan.status)}`}>
+                  状态：{plan.status}
+                </span>
+              </div>
+            </div>
+
+            {plan.status === '生效' ? (
+              <p className="mt-3 text-sm text-slate-400">下次定投时间：{plan.nextRunAt.slice(0, 10)}</p>
+            ) : null}
+          </div>
+        ))}
+
+        {visiblePlans.length === 0 ? (
+          <div className="rounded-2xl border border-white/8 bg-white/5 px-4 py-5 text-sm text-slate-400">
+            当前筛选条件下没有定投计划。
+          </div>
         ) : null}
       </div>
     </SectionCard>
   )
+}
+
+function resolveSipStatus(plan: SipPlan): SipStatus {
+  if (plan.active) {
+    return '生效'
+  }
+  return new Date(plan.nextRunAt).getTime() < Date.now() ? '停止' : '暂停'
+}
+
+function statusToneClass(status: SipStatus) {
+  switch (status) {
+    case '生效':
+      return 'border-emerald-400/25 bg-emerald-400/10 text-emerald-200'
+    case '暂停':
+      return 'border-white/10 bg-white/5 text-slate-300'
+    case '停止':
+      return 'border-red-400/25 bg-red-500/10 text-red-200'
+  }
 }

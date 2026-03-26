@@ -16,5 +16,6 @@ services/api/.idea
 !.env.example
 *.env.local
 PLAN.md
+prd.md
 *-dev.md
 tmp/

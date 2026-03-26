@@ -8,7 +8,9 @@ public interface FundRepository extends JpaRepository<FundEntity, String> {
 
     List<FundEntity> findTop12ByOrderByCreatedAtDesc();
 
-    List<FundEntity> findTop12ByNameContainingIgnoreCaseOrCodeContainingIgnoreCase(String name, String code);
+    List<FundEntity> findTop8ByNameContainingIgnoreCaseOrCodeContainingIgnoreCase(String name, String code);
+
+    List<FundEntity> findByCodeIn(List<String> codes);
 
     Optional<FundEntity> findByCode(String code);
 }

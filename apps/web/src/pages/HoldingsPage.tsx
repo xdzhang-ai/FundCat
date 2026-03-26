@@ -171,7 +171,7 @@ export function HoldingsPage({
                     key={`${row.fundCode}:${column}`}
                     layout
                     transition={{ type: 'spring', stiffness: 420, damping: 34, mass: 0.85 }}
-                    className={`relative min-w-0 ${columnMeta[column].align === 'right' ? 'text-right' : ''}`}
+                    className={`relative flex min-w-0 items-center ${columnMeta[column].align === 'right' ? 'justify-end text-right' : ''}`}
                   >
                     {renderCell(column, row)}
                   </motion.div>

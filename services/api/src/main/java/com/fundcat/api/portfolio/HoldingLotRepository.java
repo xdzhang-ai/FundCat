@@ -8,5 +8,7 @@ public interface HoldingLotRepository extends JpaRepository<HoldingLotEntity, St
 
     List<HoldingLotEntity> findByPortfolioIdOrderByAllocationDesc(String portfolioId);
 
+    List<HoldingLotEntity> findByPortfolioIdIn(List<String> portfolioIds);
+
     Optional<HoldingLotEntity> findByPortfolioIdAndFundCode(String portfolioId, String fundCode);
 }

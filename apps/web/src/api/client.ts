@@ -1,13 +1,21 @@
 import type {
+  AlertRule,
   AuthResponse,
   CreateImportJobPayload,
   CreatePaperOrderPayload,
   CreateSipPlanPayload,
   CreateWatchlistPayload,
   DashboardResponse,
+  FeatureFlag,
   FundCard,
   FundDetail,
+  ImportJob,
   LoginPayload,
+  PaperOrder,
+  PortfolioSummary,
+  SipPlan,
+  WatchlistItem,
+  WeeklyReport,
 } from '@fundcat/contracts'
 
 const API_BASE = '/api/v1'
@@ -38,6 +46,10 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     throw new Error(problem.detail ?? 'Request failed')
   }
 
+  if (response.status === 204) {
+    return undefined as T
+  }
+
   return response.json() as Promise<T>
 }
 
@@ -60,29 +72,41 @@ export const api = {
     }).catch(() => undefined)
   },
   dashboard: () => request<DashboardResponse>('/dashboard'),
+  featureFlags: () => request<FeatureFlag[]>('/ops/feature-flags'),
   funds: (query = '') =>
     request<FundCard[]>(`/funds${query ? `?query=${encodeURIComponent(query)}` : ''}`),
   fundDetail: (code: string) => request<FundDetail>(`/funds/${code}`),
+  watchlist: () => request<WatchlistItem[]>('/watchlist'),
   addWatchlist: (payload: CreateWatchlistPayload) =>
     request('/watchlist', {
       method: 'POST',
       body: JSON.stringify(payload),
     }),
+  removeWatchlist: (fundCode: string) =>
+    request(`/watchlist/${encodeURIComponent(fundCode)}`, {
+      method: 'DELETE',
+    }),
+  portfolios: () => request<PortfolioSummary[]>('/portfolios'),
+  orders: () => request<PaperOrder[]>('/orders'),
   createOrder: (payload: CreatePaperOrderPayload) =>
     request('/orders', {
       method: 'POST',
       body: JSON.stringify(payload),
     }),
+  sipPlans: () => request<SipPlan[]>('/sips'),
   createSip: (payload: CreateSipPlanPayload) =>
     request('/sips', {
       method: 'POST',
       body: JSON.stringify(payload),
     }),
+  importJobs: () => request<ImportJob[]>('/import-jobs'),
   createImportJob: (payload: CreateImportJobPayload) =>
     request('/import-jobs', {
       method: 'POST',
       body: JSON.stringify(payload),
     }),
+  weeklyReports: () => request<WeeklyReport[]>('/reports/weekly'),
+  alerts: () => request<AlertRule[]>('/alerts'),
 }
 
 export const authStorage = {

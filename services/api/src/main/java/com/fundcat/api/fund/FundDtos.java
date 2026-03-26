@@ -37,7 +37,9 @@ public final class FundDtos {
         double dayGrowth,
         double estimatedNav,
         double estimatedGrowth,
-        boolean referenceOnly
+        boolean referenceOnly,
+        boolean watchlisted,
+        boolean held
     ) {
     }
 

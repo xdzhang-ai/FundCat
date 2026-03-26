@@ -35,8 +35,15 @@ export type HoldingInsight = {
   dayChange: number | null
 }
 
+export function formatAmount(value: number) {
+  return value.toLocaleString('zh-CN', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  })
+}
+
 export function formatCurrency(value: number) {
-  return `¥${value.toLocaleString('zh-CN', { minimumFractionDigits: value >= 1000 ? 2 : 4, maximumFractionDigits: 4 })}`
+  return `¥${formatAmount(value)}`
 }
 
 export function formatCompactPercent(value: number | null) {

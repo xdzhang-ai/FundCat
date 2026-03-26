@@ -21,7 +21,7 @@ services:
       retries: 10
 
   redis:
-    image: redis:7.4
+    image: redis:8.0
     container_name: fundcat-redis
     restart: unless-stopped
     command:

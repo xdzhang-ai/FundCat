@@ -9,6 +9,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
+import { formatAmount } from '../../lib/fundInsights'
 
 export type TrendMarker = {
   type: 'BUY' | 'SELL' | 'SIP'
@@ -71,6 +72,7 @@ export function FundTrendChart({ data, accent = '#f3ba2f', costLine }: FundTrend
             tickLine={false}
             tick={{ fill: '#94a3b8', fontSize: 12 }}
             domain={['auto', 'auto']}
+            tickFormatter={(value: number) => formatAmount(value)}
           />
           <Tooltip
             content={({ active, payload, label }) => {
@@ -79,7 +81,7 @@ export function FundTrendChart({ data, accent = '#f3ba2f', costLine }: FundTrend
               return (
                 <div className="min-w-[220px] rounded-[1.1rem] border border-white/10 bg-[rgba(18,21,28,0.96)] px-4 py-3 shadow-2xl">
                   <p className="text-xs uppercase tracking-[0.22em] text-slate-500">{formatAxisLabel(String(label ?? ''))}</p>
-                  <p className="mt-2 font-[var(--fc-font-display)] text-xl text-white">{Number(point.value).toFixed(4)}</p>
+                  <p className="mt-2 font-[var(--fc-font-display)] text-xl text-white">{formatAmount(Number(point.value))}</p>
                   {point.markers?.length ? (
                     <div className="mt-3 space-y-2 border-t border-white/8 pt-3">
                       {point.markers.map((marker) => (

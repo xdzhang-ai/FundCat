@@ -2,13 +2,21 @@ package com.fundcat.api.fund;
 
 import com.fundcat.api.common.NotFoundException;
 import com.fundcat.api.ops.OpsService;
+import com.fundcat.api.portfolio.HoldingLotRepository;
+import com.fundcat.api.portfolio.PortfolioRepository;
+import com.fundcat.api.portfolio.WatchlistRepository;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -18,6 +26,9 @@ public class FundService {
     private final FundSnapshotRepository fundSnapshotRepository;
     private final FundEstimateRepository fundEstimateRepository;
     private final NavHistoryRepository navHistoryRepository;
+    private final WatchlistRepository watchlistRepository;
+    private final PortfolioRepository portfolioRepository;
+    private final HoldingLotRepository holdingLotRepository;
     private final OpsService opsService;
 
     public FundService(
@@ -25,20 +36,54 @@ public class FundService {
         FundSnapshotRepository fundSnapshotRepository,
         FundEstimateRepository fundEstimateRepository,
         NavHistoryRepository navHistoryRepository,
+        WatchlistRepository watchlistRepository,
+        PortfolioRepository portfolioRepository,
+        HoldingLotRepository holdingLotRepository,
         OpsService opsService
     ) {
         this.fundRepository = fundRepository;
         this.fundSnapshotRepository = fundSnapshotRepository;
         this.fundEstimateRepository = fundEstimateRepository;
         this.navHistoryRepository = navHistoryRepository;
+        this.watchlistRepository = watchlistRepository;
+        this.portfolioRepository = portfolioRepository;
+        this.holdingLotRepository = holdingLotRepository;
         this.opsService = opsService;
     }
 
-    public List<FundDtos.FundCardResponse> search(String query) {
-        List<FundEntity> funds = (query == null || query.isBlank())
-            ? fundRepository.findTop12ByOrderByCreatedAtDesc()
-            : fundRepository.findTop12ByNameContainingIgnoreCaseOrCodeContainingIgnoreCase(query.trim(), query.trim());
-        return funds.stream().map(this::toCard).toList();
+    public List<FundDtos.FundCardResponse> search(String userId, String query) {
+        Set<String> watchlistCodes = watchlistRepository.findByUserIdOrderByCreatedAtDesc(userId).stream()
+            .map(watchlist -> watchlist.getFundCode())
+            .collect(Collectors.toCollection(LinkedHashSet::new));
+        List<String> portfolioIds = portfolioRepository.findByUserIdOrderByCreatedAtAsc(userId).stream()
+            .map(portfolio -> portfolio.getId())
+            .toList();
+        Set<String> holdingCodes = portfolioIds.isEmpty()
+            ? Set.of()
+            : holdingLotRepository.findByPortfolioIdIn(portfolioIds).stream()
+                .map(holding -> holding.getFundCode())
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+
+        List<FundEntity> funds;
+        if (query == null || query.isBlank()) {
+            List<FundEntity> recentFunds = fundRepository.findTop12ByOrderByCreatedAtDesc();
+            LinkedHashSet<String> prioritizedCodes = new LinkedHashSet<>();
+            prioritizedCodes.addAll(holdingCodes);
+            prioritizedCodes.addAll(watchlistCodes);
+            prioritizedCodes.addAll(recentFunds.stream().map(FundEntity::getCode).toList());
+
+            Map<String, FundEntity> fundMap = fundRepository.findByCodeIn(List.copyOf(prioritizedCodes)).stream()
+                .collect(Collectors.toMap(FundEntity::getCode, Function.identity()));
+            funds = prioritizedCodes.stream()
+                .map(fundMap::get)
+                .filter(java.util.Objects::nonNull)
+                .limit(12)
+                .toList();
+        } else {
+            funds = fundRepository.findTop8ByNameContainingIgnoreCaseOrCodeContainingIgnoreCase(query.trim(), query.trim());
+        }
+
+        return funds.stream().map(fund -> toCard(fund, watchlistCodes, holdingCodes)).toList();
     }
 
     public FundDtos.FundDetailResponse getDetail(String code) {
@@ -90,7 +135,7 @@ public class FundService {
         );
     }
 
-    private FundDtos.FundCardResponse toCard(FundEntity fund) {
+    private FundDtos.FundCardResponse toCard(FundEntity fund, Set<String> watchlistCodes, Set<String> holdingCodes) {
         FundSnapshotEntity snapshot = fundSnapshotRepository.findTopByFundCodeOrderByUpdatedAtDesc(fund.getCode())
             .orElseThrow(() -> new NotFoundException("Fund snapshot not found"));
         FundEstimateEntity estimate = fundEstimateRepository.findTopByFundCodeOrderByEstimatedAtDesc(fund.getCode())
@@ -107,7 +152,9 @@ public class FundService {
             round(snapshot.getDayGrowth()),
             round(estimateReferenceEnabled ? estimate.getEstimatedNav() : snapshot.getUnitNav()),
             round(estimateReferenceEnabled ? estimate.getEstimatedGrowth() : snapshot.getDayGrowth()),
-            estimateReferenceEnabled && estimate.isReferenceOnly()
+            estimateReferenceEnabled && estimate.isReferenceOnly(),
+            watchlistCodes.contains(fund.getCode()),
+            holdingCodes.contains(fund.getCode())
         );
     }
 
