@@ -23,9 +23,15 @@ export function buildWorkspaceDerivedState({
   const featureFlags = data.featureFlags ?? data.overviewDashboard?.featureFlags ?? []
   const effectiveSipPlans = mergeLocalSipPlanDrafts(data.sipPlans, localSipPlanDrafts)
   const effectivePortfolios = mergeHoldingDraftsIntoPortfolios(data.portfolios, localHoldingDrafts)
-  const holdingsMarketValue = effectivePortfolios?.reduce((sum, portfolio) => sum + portfolio.marketValue, 0) ?? 0
+  const holdingsMarketValue =
+    data.holdingsOverview?.totalMarketValue ??
+    effectivePortfolios?.reduce((sum, portfolio) => sum + portfolio.marketValue, 0) ??
+    0
   const watchlistCodeSet = new Set((data.watchlist ?? data.overviewDashboard?.watchlist ?? []).map((item) => item.code))
-  const heldCodeSet = holdingCodesFromPortfolios(effectivePortfolios)
+  const heldCodeSet =
+    data.holdingsOverview?.items?.length
+      ? new Set(data.holdingsOverview.items.map((item) => item.fundCode))
+      : holdingCodesFromPortfolios(effectivePortfolios)
   const sipPlanCodeSet = new Set(
     (effectiveSipPlans ?? []).filter((plan) => resolveSipStatus(plan) !== '停止').map((plan) => plan.fundCode),
   )

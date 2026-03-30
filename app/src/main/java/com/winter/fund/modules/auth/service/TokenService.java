@@ -1,5 +1,9 @@
 package com.winter.fund.modules.auth.service;
 
+/**
+ * 认证模块服务，负责封装该模块的核心业务逻辑。
+ */
+
 import com.winter.fund.modules.auth.model.CurrentUser;
 import com.winter.fund.modules.auth.model.UserEntity;
 import java.time.Instant;

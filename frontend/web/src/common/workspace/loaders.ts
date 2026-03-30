@@ -83,6 +83,14 @@ export function createWorkspaceEnsureLoaders({
     return watchlist
   }
 
+  async function ensureHoldingsOverview(force = false) {
+    const cached = getData().holdingsOverview
+    if (!force && cached) return cached
+    const holdingsOverview = await workspaceApi.holdingsOverview()
+    setData((current) => ({ ...current, holdingsOverview }))
+    return holdingsOverview
+  }
+
   async function ensurePortfolios(force = false) {
     const cached = getData().portfolios
     if (!force && cached) return cached
@@ -143,16 +151,46 @@ export function createWorkspaceEnsureLoaders({
     return detail
   }
 
+  async function ensureFundHoldingInsight(code: string, force = false) {
+    const cached = getData().selectedFund?.code === code ? getData().selectedFundHoldingInsight : null
+    if (!force && cached) return cached
+    const selectedFundHoldingInsight = await workspaceApi.fundHoldingInsight(code).catch(() => null)
+    setData((current) => ({ ...current, selectedFundHoldingInsight }))
+    return selectedFundHoldingInsight
+  }
+
+  function clearFundHoldingInsight() {
+    setData((current) => ({ ...current, selectedFundHoldingInsight: null }))
+  }
+
+  async function ensureSipRecords(sipPlanId: string, force = false) {
+    const cached = getData().sipRecordsByPlanId[sipPlanId]
+    if (!force && cached) return cached
+    const records = await workspaceApi.sipRecords(sipPlanId)
+    setData((current) => ({
+      ...current,
+      sipRecordsByPlanId: {
+        ...current.sipRecordsByPlanId,
+        [sipPlanId]: records,
+      },
+    }))
+    return records
+  }
+
   return {
     ensureAlerts,
     ensureFeatureFlags,
     ensureFundDetail,
+    ensureFundHoldingInsight,
+    clearFundHoldingInsight,
     ensureFunds,
+    ensureHoldingsOverview,
     ensureImportJobs,
     ensureOrders,
     ensureOverviewDashboard,
     ensurePortfolios,
     ensureReports,
+    ensureSipRecords,
     ensureSipPlans,
     ensureWatchlist,
   }

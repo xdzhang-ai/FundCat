@@ -1,5 +1,9 @@
 package com.winter.fund.infrastructure.redis;
 
+/**
+ * Redis 基础设施文件，负责会话或缓存相关的底层存取。
+ */
+
 import com.winter.fund.common.config.AuthProperties;
 import com.winter.fund.modules.auth.model.CurrentUser;
 import com.winter.fund.modules.auth.model.UserEntity;
@@ -12,6 +16,8 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Optional;
 import java.util.UUID;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
@@ -20,6 +26,7 @@ import org.springframework.stereotype.Service;
 @ConditionalOnProperty(prefix = "fundcat.auth", name = "session-store", havingValue = "redis")
 public class RedisTokenService implements TokenService {
 
+    private static final Logger log = LoggerFactory.getLogger(RedisTokenService.class);
     private static final String ACCESS_PREFIX = "fundcat:auth:access:";
     private static final String REFRESH_PREFIX = "fundcat:auth:refresh:";
 
@@ -51,6 +58,8 @@ public class RedisTokenService implements TokenService {
         );
         save(accessKey(accessToken), session, Duration.ofMinutes(authProperties.getAccessTokenTtlMinutes()));
         save(refreshKey(refreshToken), session, Duration.ofDays(authProperties.getRefreshTokenTtlDays()));
+        log.info("Redis token session issued, userId={}, accessTtlMinutes={}, refreshTtlDays={}",
+            user.getId(), authProperties.getAccessTokenTtlMinutes(), authProperties.getRefreshTokenTtlDays());
         return new IssuedTokens(accessToken, refreshToken, authProperties.getAccessTokenTtlMinutes() * 60L);
     }
 
@@ -66,6 +75,7 @@ public class RedisTokenService implements TokenService {
         Optional<StoredSession> session = find(refreshKey(token))
             .filter(stored -> !stored.refreshExpiry().isBefore(clock.instant()));
         if (session.isEmpty()) {
+            log.warn("Refresh token rejected from redis store");
             return Optional.empty();
         }
         redisTemplate.delete(accessKey(session.get().accessToken()));
@@ -74,6 +84,7 @@ public class RedisTokenService implements TokenService {
         user.setId(session.get().userId());
         user.setDisplayName(session.get().displayName());
         user.setUsername(session.get().username());
+        log.info("Redis refresh token consumed, userId={}", user.getId());
         return Optional.of(issue(user));
     }
 
@@ -82,6 +93,7 @@ public class RedisTokenService implements TokenService {
         find(accessKey(token)).ifPresent(session -> {
             redisTemplate.delete(accessKey(session.accessToken()));
             redisTemplate.delete(refreshKey(session.refreshToken()));
+            log.info("Redis token session revoked, userId={}", session.userId());
         });
     }
 
@@ -94,6 +106,7 @@ public class RedisTokenService implements TokenService {
             return Optional.of(objectMapper.readValue(raw, StoredSession.class));
         } catch (JsonProcessingException exception) {
             redisTemplate.delete(key);
+            log.warn("Corrupted redis token session removed, key={}", key);
             return Optional.empty();
         }
     }

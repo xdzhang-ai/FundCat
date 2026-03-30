@@ -178,16 +178,16 @@ function App() {
             <Route
               path="/funds/:fundCode"
               element={renderRouteContent(
-                Boolean(workspace.effectiveFunds && workspace.effectiveSelectedFund && workspace.effectivePortfolios && workspace.data.orders && workspace.effectiveSipPlans),
+                Boolean(workspace.effectiveSelectedFund && workspace.data.orders && workspace.effectiveSipPlans),
                 workspace.isRouteLoading,
                 workspace.showRouteLoading,
-                workspace.effectiveFunds && workspace.effectiveSelectedFund ? (
+                workspace.effectiveSelectedFund ? (
                   <FundDetailPage
-                    portfolios={workspace.effectivePortfolios ?? []}
                     orders={workspace.data.orders ?? []}
+                    operationHistory={[...(workspace.data.orders ?? []), ...workspace.localHoldingHistory]}
                     sipPlans={workspace.effectiveSipPlans ?? []}
-                    funds={workspace.effectiveFunds}
                     selectedFund={workspace.effectiveSelectedFund}
+                    holdingInsight={workspace.selectedFundHoldingInsight}
                     isFlagEnabled={workspace.isFlagEnabled}
                     onBack={() => workspace.navigate(workspace.fundDetailBackPath)}
                     onQuickAction={(kind) => void workspace.runQuickAction(kind)}
@@ -212,6 +212,34 @@ function App() {
                       workspace.setPendingHoldingPnl('')
                     }}
                     onConfirmHoldingInput={workspace.confirmAddHolding}
+                    holdingOperationInputOpen={workspace.pendingHoldingOperationInput?.code === workspace.effectiveSelectedFund.code}
+                    holdingOperationType={workspace.pendingHoldingOperationInput?.operation ?? 'BUY'}
+                    holdingOperationAmount={workspace.pendingHoldingOperationAmount}
+                    holdingOperationFeeRate={workspace.pendingHoldingOperationFeeRate}
+                    holdingOperationShares={workspace.pendingHoldingOperationShares}
+                    holdingOperationTiming={workspace.pendingHoldingOperationTiming}
+                    holdingOperationTradeDate={workspace.pendingHoldingOperationTradeDate}
+                    onHoldingOperationAmountChange={workspace.setPendingHoldingOperationAmount}
+                    onHoldingOperationFeeRateChange={workspace.setPendingHoldingOperationFeeRate}
+                    onHoldingOperationSharesChange={workspace.setPendingHoldingOperationShares}
+                    onHoldingOperationTimingChange={workspace.setPendingHoldingOperationTiming}
+                    onHoldingOperationTradeDateChange={(value) => {
+                      workspace.setPendingHoldingOperationTradeDate(value)
+                      const now = new Date()
+                      const today = new Date(Date.now() - now.getTimezoneOffset() * 60 * 1000).toISOString().slice(0, 10)
+                      if (value === today && now.getHours() < 15 && workspace.pendingHoldingOperationTiming === 'AFTER_3PM') {
+                        workspace.setPendingHoldingOperationTiming('BEFORE_3PM')
+                      }
+                    }}
+                    onCancelHoldingOperation={() => {
+                      workspace.setPendingHoldingOperationInput(null)
+                      workspace.setPendingHoldingOperationAmount('')
+                      workspace.setPendingHoldingOperationFeeRate('0')
+                      workspace.setPendingHoldingOperationShares('')
+                      workspace.setPendingHoldingOperationTiming('AFTER_3PM')
+                      workspace.setPendingHoldingOperationTradeDate(new Date(Date.now() - new Date().getTimezoneOffset() * 60 * 1000).toISOString().slice(0, 10))
+                    }}
+                    onConfirmHoldingOperation={() => void workspace.confirmHoldingOperation()}
                     sipPlanExists={workspace.sipPlanCodeSet.has(workspace.effectiveSelectedFund.code)}
                     sipInputOpen={workspace.pendingSipInput?.code === workspace.effectiveSelectedFund.code}
                     sipCadence={workspace.pendingSipCadence}
@@ -243,21 +271,20 @@ function App() {
             <Route
               path="/holdings"
               element={renderRouteContent(
-                Boolean(workspace.effectivePortfolios && workspace.effectiveFunds),
+                Boolean(workspace.holdingsOverview),
                 workspace.isRouteLoading,
                 workspace.showRouteLoading,
-                <HoldingsPage portfolios={workspace.effectivePortfolios!} funds={workspace.effectiveFunds!} onOpenFund={workspace.openFundDetail} />,
+                <HoldingsPage overview={workspace.holdingsOverview!} onOpenFund={workspace.openFundDetail} />,
               )}
             />
             <Route
               path="/portfolio"
               element={renderRouteContent(
-                Boolean(workspace.data.watchlist && workspace.effectiveFunds),
+                Boolean(workspace.data.watchlist),
                 workspace.isRouteLoading,
                 workspace.showRouteLoading,
                 <PortfolioPage
                   watchlist={workspace.data.watchlist!}
-                  funds={workspace.effectiveFunds!}
                   groupSelections={workspace.watchlistGroups}
                   onAssignGroup={workspace.assignWatchlistGroup}
                   onOpenFund={workspace.openFundDetail}
@@ -286,6 +313,7 @@ function App() {
                       return matchedPlan ? (
                         <SipPlanDetailPage
                           plan={matchedPlan}
+                          records={workspace.sipPlanRecords}
                           onBack={() => workspace.navigate('/automation')}
                           onEditPlan={workspace.handleEditSipPlan}
                           onTogglePlan={workspace.handleToggleSipPlan}

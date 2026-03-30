@@ -1,7 +1,9 @@
-/** 持仓与模拟订单契约，区分组合概览、持仓列表和基金持仓洞察三类语义。 */
-import type { IsoDateTimeString } from './shared'
+/** 持仓与操作记录契约。 */
+import type { DateString, IsoDateTimeString } from './shared'
 
-/** 底层持仓 lot 模型，当前仍兼容原有 dashboard 聚合口径。 */
+export type AmountBasis = 'T_MINUS_1' | 'T'
+
+/** 兼容完整资产树读取的持仓 lot 结构。 */
 export type HoldingLot = {
   id: string
   fundCode: string
@@ -15,12 +17,6 @@ export type HoldingLot = {
   updatedAt: IsoDateTimeString
 }
 
-/**
- * 组合摘要。
- * 说明：
- * 1. 该模型适合概览页或需要完整组合树的场景。
- * 2. 若只渲染持仓表格，建议优先走 HoldingListItem，减少无效嵌套数据。
- */
 export type PortfolioSummary = {
   id: string
   name: string
@@ -32,12 +28,6 @@ export type PortfolioSummary = {
   holdings: HoldingLot[]
 }
 
-/**
- * 持仓页行项目。
- * 说明：
- * 1. 这是更适合持仓页表格的细粒度接口模型。
- * 2. 后端可以直接预聚合 todayPnl / dayGrowth，避免前端二次推导和多次 join。
- */
 export type HoldingListItem = {
   fundCode: string
   fundName: string
@@ -45,19 +35,14 @@ export type HoldingListItem = {
   todayPnl: number
   marketValue: number
   holdingPnl: number
+  allocation: number
 }
 
-/** 持仓页概览响应，推荐给持仓页使用。 */
 export type HoldingsOverviewResponse = {
   totalMarketValue: number
   items: HoldingListItem[]
 }
 
-/**
- * 基金详情页里的持仓洞察。
- * 说明：
- * 该契约是基金详情页专属，不建议从大盘接口中顺手附带，以免把组合聚合压力放到每次详情查询上。
- */
 export type HoldingInsight = {
   fundCode: string
   amountHeld: number
@@ -73,29 +58,63 @@ export type HoldingInsight = {
   holdingDays: number
 }
 
-/** 模拟订单。 */
+export type HoldingUpsertPayload = {
+  fundCode: string
+  amountBasis: AmountBasis
+  amount: number
+  holdingPnl: number
+}
+
+export type HoldingOperation = {
+  id: string
+  fundCode: string
+  fundName: string
+  operation: 'BUY' | 'SELL' | 'OPEN_POSITION' | 'CLOSE_POSITION' | 'SIP_BUY'
+  source: 'MANUAL' | 'SIP'
+  status: '确认中' | '已执行'
+  tradeDate: DateString
+  amount: number
+  shares: number
+  nav: number
+  feeRate: number
+  feeAmount: number
+}
+
+/** 兼容现有前端展示层的最近动作模型。 */
 export type PaperOrder = {
   id: string
   fundCode: string
   fundName: string
   orderType: 'BUY' | 'SELL'
+  operation: 'BUY' | 'SELL' | 'OPEN_POSITION' | 'CLOSE_POSITION' | 'SIP_BUY'
+  source: 'MANUAL' | 'SIP'
   amount: number
   shares: number
   fee: number
+  feeRate: number
   status: string
+  tradeDate: DateString
   executedAt: IsoDateTimeString
 }
 
-/** 创建模拟订单请求。 */
-export type CreatePaperOrderPayload = {
-  portfolioId: string
+export type CreateBuyOperationPayload = {
   fundCode: string
-  orderType: 'BUY' | 'SELL'
+  operation: 'BUY'
+  tradeDate: DateString
   amount: number
-  shares: number
-  fee: number
-  note: string
+  feeRate: number
+  note?: string
 }
 
-/** 概览页最近动作响应，通常只取最近几条记录。 */
+export type CreateSellOperationPayload = {
+  fundCode: string
+  operation: 'SELL'
+  tradeDate: DateString
+  shares: number
+  feeRate: number
+  note?: string
+}
+
+export type CreateHoldingOperationPayload = CreateBuyOperationPayload | CreateSellOperationPayload
+
 export type RecentOrderListResponse = PaperOrder[]

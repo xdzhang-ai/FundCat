@@ -1,5 +1,9 @@
 package com.winter.fund.modules.fund.service;
 
+/**
+ * 基金模块服务，负责封装该模块的核心业务逻辑。
+ */
+
 import com.winter.fund.modules.fund.model.FundDtos;
 import com.winter.fund.modules.fund.model.FundEntity;
 import com.winter.fund.modules.fund.model.FundEstimateEntity;
@@ -9,10 +13,9 @@ import com.winter.fund.modules.fund.repository.FundEstimateRepository;
 import com.winter.fund.modules.fund.repository.FundRepository;
 import com.winter.fund.modules.fund.repository.FundSnapshotRepository;
 import com.winter.fund.modules.fund.repository.NavHistoryRepository;
+import com.winter.fund.modules.holding.repository.UserFundHoldingRepository;
 import com.winter.fund.common.exception.NotFoundException;
 import com.winter.fund.modules.ops.service.OpsService;
-import com.winter.fund.modules.portfolio.repository.HoldingLotRepository;
-import com.winter.fund.modules.portfolio.repository.PortfolioRepository;
 import com.winter.fund.modules.portfolio.repository.WatchlistRepository;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -40,8 +43,7 @@ public class FundService {
     private final FundEstimateRepository fundEstimateRepository;
     private final NavHistoryRepository navHistoryRepository;
     private final WatchlistRepository watchlistRepository;
-    private final PortfolioRepository portfolioRepository;
-    private final HoldingLotRepository holdingLotRepository;
+    private final UserFundHoldingRepository userFundHoldingRepository;
     private final OpsService opsService;
 
     public FundService(
@@ -50,8 +52,7 @@ public class FundService {
         FundEstimateRepository fundEstimateRepository,
         NavHistoryRepository navHistoryRepository,
         WatchlistRepository watchlistRepository,
-        PortfolioRepository portfolioRepository,
-        HoldingLotRepository holdingLotRepository,
+        UserFundHoldingRepository userFundHoldingRepository,
         OpsService opsService
     ) {
         this.fundRepository = fundRepository;
@@ -59,8 +60,7 @@ public class FundService {
         this.fundEstimateRepository = fundEstimateRepository;
         this.navHistoryRepository = navHistoryRepository;
         this.watchlistRepository = watchlistRepository;
-        this.portfolioRepository = portfolioRepository;
-        this.holdingLotRepository = holdingLotRepository;
+        this.userFundHoldingRepository = userFundHoldingRepository;
         this.opsService = opsService;
     }
 
@@ -69,14 +69,9 @@ public class FundService {
         Set<String> watchlistCodes = watchlistRepository.findByUserIdOrderByCreatedAtDesc(userId).stream()
             .map(watchlist -> watchlist.getFundCode())
             .collect(Collectors.toCollection(LinkedHashSet::new));
-        List<String> portfolioIds = portfolioRepository.findByUserIdOrderByCreatedAtAsc(userId).stream()
-            .map(portfolio -> portfolio.getId())
-            .toList();
-        Set<String> holdingCodes = portfolioIds.isEmpty()
-            ? Set.of()
-            : holdingLotRepository.findByPortfolioIdIn(portfolioIds).stream()
-                .map(holding -> holding.getFundCode())
-                .collect(Collectors.toCollection(LinkedHashSet::new));
+        Set<String> holdingCodes = userFundHoldingRepository.findByUserIdOrderByMarketValueDesc(userId).stream()
+            .map(holding -> holding.getFundCode())
+            .collect(Collectors.toCollection(LinkedHashSet::new));
 
         List<FundEntity> funds;
         if (query == null || query.isBlank()) {
@@ -100,8 +95,8 @@ public class FundService {
         return funds.stream().map(fund -> toCard(fund, watchlistCodes, holdingCodes)).toList();
     }
 
-    public FundDtos.FundDetailResponse getDetail(String code) {
-        log.info("Loading fund detail, code={}", code);
+    public FundDtos.FundDetailResponse getDetail(String userId, String code) {
+        log.info("Loading fund detail, userId={}, code={}", userId, code);
         FundEntity fund = fundRepository.findByCode(code)
             .orElseThrow(() -> new NotFoundException("Fund not found"));
         FundSnapshotEntity snapshot = fundSnapshotRepository.findTopByFundCodeOrderByUpdatedAtDesc(code)
@@ -123,6 +118,8 @@ public class FundService {
         List<FundDtos.IndustryExposureResponse> industryDistribution = opsService.isEnabled("industry_distribution")
             ? buildIndustryDistribution(code)
             : List.of();
+        boolean watchlisted = watchlistRepository.findByUserIdAndFundCode(userId, code).isPresent();
+        boolean held = userFundHoldingRepository.findByUserIdAndFundCode(userId, code).isPresent();
         return new FundDtos.FundDetailResponse(
             fund.getCode(),
             fund.getName(),
@@ -135,6 +132,8 @@ public class FundService {
             round(displayedNav),
             round(displayedGrowth),
             estimateReferenceEnabled && estimate.isReferenceOnly(),
+            watchlisted,
+            held,
             round(fund.getManagementFee()),
             round(fund.getCustodyFee()),
             round(fund.getPurchaseFee()),
@@ -148,6 +147,14 @@ public class FundService {
             quarterlyHoldings,
             industryDistribution
         );
+    }
+
+    public FundDtos.FundUserStateResponse getUserState(String userId, String code) {
+        log.info("Loading fund user state, userId={}, code={}", userId, code);
+        fundRepository.findByCode(code).orElseThrow(() -> new NotFoundException("Fund not found"));
+        boolean watchlisted = watchlistRepository.findByUserIdAndFundCode(userId, code).isPresent();
+        boolean held = userFundHoldingRepository.findByUserIdAndFundCode(userId, code).isPresent();
+        return new FundDtos.FundUserStateResponse(code, watchlisted, held);
     }
 
     private FundDtos.FundCardResponse toCard(FundEntity fund, Set<String> watchlistCodes, Set<String> holdingCodes) {

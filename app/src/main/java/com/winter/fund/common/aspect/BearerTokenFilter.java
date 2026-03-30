@@ -1,5 +1,9 @@
 package com.winter.fund.common.aspect;
 
+/**
+ * 公共切面或过滤器文件，负责处理横切鉴权与请求上下文。
+ */
+
 import com.winter.fund.modules.auth.service.TokenService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;

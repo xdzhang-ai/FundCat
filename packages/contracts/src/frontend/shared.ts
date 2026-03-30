@@ -12,6 +12,13 @@ export type TrendPoint = {
   value: number
 }
 
+/** 后台统一成功/失败包裹结构。 */
+export type ApiResponse<T> = {
+  code: number
+  message: string
+  data: T
+}
+
 /** 当前登录用户的最小资料。 */
 export type UserProfile = {
   id: string

@@ -1,5 +1,9 @@
 package com.winter.fund.common.config;
 
+/**
+ * 公共配置文件，负责承载全局属性或 Spring 基础设施配置。
+ */
+
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 @ConfigurationProperties(prefix = "fundcat.auth")

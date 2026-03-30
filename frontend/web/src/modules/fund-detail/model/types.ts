@@ -1,16 +1,16 @@
 /** 基金详情页模块类型定义，统一页面和子组件共享的 props 结构。 */
-import type { FundCard, FundDetail, PaperOrder, PortfolioSummary, SipPlan } from '@fundcat/contracts'
-import type { WatchlistGroup } from '../../../common/appTypes'
+import type { FundDetail, HoldingInsight, PaperOrder, SipPlan } from '@fundcat/contracts'
+import type { FundOperationHistoryItem, WatchlistGroup } from '../../../common/appTypes'
 
 export type FundDetailPageProps = {
-  portfolios: PortfolioSummary[]
   orders: PaperOrder[]
+  operationHistory: FundOperationHistoryItem[]
   sipPlans: SipPlan[]
-  funds: FundCard[]
   selectedFund: FundDetail
+  holdingInsight: HoldingInsight | null
   isFlagEnabled: (code: string) => boolean
   onBack: () => void
-  onQuickAction: (kind: 'watchlist' | 'holding' | 'editHolding' | 'sip' | 'ocr') => void
+  onQuickAction: (kind: 'watchlist' | 'holding' | 'editHolding' | 'sip' | 'buy' | 'sell') => void
   watchlistPickerOpen: boolean
   watchlistPickerGroups: WatchlistGroup[]
   watchlistGroupOptions: WatchlistGroup[]
@@ -25,6 +25,20 @@ export type FundDetailPageProps = {
   onHoldingPnlChange: (value: string) => void
   onCancelHoldingInput: () => void
   onConfirmHoldingInput: () => void
+  holdingOperationInputOpen: boolean
+  holdingOperationType: 'BUY' | 'SELL'
+  holdingOperationAmount: string
+  holdingOperationFeeRate: string
+  holdingOperationShares: string
+  holdingOperationTiming: 'BEFORE_3PM' | 'AFTER_3PM'
+  holdingOperationTradeDate: string
+  onHoldingOperationAmountChange: (value: string) => void
+  onHoldingOperationFeeRateChange: (value: string) => void
+  onHoldingOperationSharesChange: (value: string) => void
+  onHoldingOperationTimingChange: (value: 'BEFORE_3PM' | 'AFTER_3PM') => void
+  onHoldingOperationTradeDateChange: (value: string) => void
+  onCancelHoldingOperation: () => void
+  onConfirmHoldingOperation: () => void
   sipPlanExists: boolean
   sipInputOpen: boolean
   sipCadence: 'DAILY' | 'WEEKLY' | 'MONTHLY'

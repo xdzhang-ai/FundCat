@@ -3,7 +3,11 @@ services:
     image: mysql:8.4
     container_name: fundcat-mysql
     restart: unless-stopped
+    command:
+      - mysqld
+      - --default-time-zone=SYSTEM
     environment:
+      TZ: ${APP_TIMEZONE:-Asia/Shanghai}
       MYSQL_DATABASE: ${MYSQL_DATABASE:-fundcat}
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-change-me-root-password}
       MYSQL_USER: ${MYSQL_USER:-fundcat}

@@ -1,5 +1,9 @@
 package com.winter.fund;
 
+/**
+ * 启动时注入演示数据，便于本地联调和功能验证。
+ */
+
 import com.winter.fund.modules.auth.model.UserEntity;
 import com.winter.fund.modules.auth.repository.UserRepository;
 import com.winter.fund.modules.fund.model.FundEntity;
@@ -10,6 +14,12 @@ import com.winter.fund.modules.fund.model.FundSnapshotEntity;
 import com.winter.fund.modules.fund.repository.FundSnapshotRepository;
 import com.winter.fund.modules.fund.model.NavHistoryEntity;
 import com.winter.fund.modules.fund.repository.NavHistoryRepository;
+import com.winter.fund.modules.holding.model.UserFundDailyProfitSnapshotEntity;
+import com.winter.fund.modules.holding.model.UserFundHoldingEntity;
+import com.winter.fund.modules.holding.model.UserFundOperationRecordEntity;
+import com.winter.fund.modules.holding.repository.UserFundDailyProfitSnapshotRepository;
+import com.winter.fund.modules.holding.repository.UserFundHoldingRepository;
+import com.winter.fund.modules.holding.repository.UserFundOperationRecordRepository;
 import com.winter.fund.modules.ops.model.FeatureFlagEntity;
 import com.winter.fund.modules.ops.repository.FeatureFlagRepository;
 import com.winter.fund.modules.portfolio.model.AlertRuleEntity;
@@ -24,15 +34,24 @@ import com.winter.fund.modules.portfolio.model.PortfolioEntity;
 import com.winter.fund.modules.portfolio.repository.PortfolioRepository;
 import com.winter.fund.modules.portfolio.model.SipPlanEntity;
 import com.winter.fund.modules.portfolio.repository.SipPlanRepository;
+import com.winter.fund.modules.portfolio.model.WatchlistGroupEntity;
 import com.winter.fund.modules.portfolio.model.WeeklyReportEntity;
 import com.winter.fund.modules.portfolio.repository.WeeklyReportRepository;
 import com.winter.fund.modules.portfolio.model.WatchlistEntity;
+import com.winter.fund.modules.portfolio.repository.WatchlistGroupRepository;
 import com.winter.fund.modules.portfolio.repository.WatchlistRepository;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.CommandLineRunner;
@@ -43,6 +62,7 @@ import org.springframework.stereotype.Component;
 public class DemoDataSeeder implements CommandLineRunner {
 
     private static final Logger log = LoggerFactory.getLogger(DemoDataSeeder.class);
+    private static final String SIP_STATUS_ACTIVE = "生效";
 
     private final UserRepository userRepository;
     private final FeatureFlagRepository featureFlagRepository;
@@ -51,6 +71,7 @@ public class DemoDataSeeder implements CommandLineRunner {
     private final FundEstimateRepository fundEstimateRepository;
     private final NavHistoryRepository navHistoryRepository;
     private final WatchlistRepository watchlistRepository;
+    private final WatchlistGroupRepository watchlistGroupRepository;
     private final PortfolioRepository portfolioRepository;
     private final HoldingLotRepository holdingLotRepository;
     private final PaperOrderRepository paperOrderRepository;
@@ -58,7 +79,11 @@ public class DemoDataSeeder implements CommandLineRunner {
     private final ImportJobRepository importJobRepository;
     private final WeeklyReportRepository weeklyReportRepository;
     private final AlertRuleRepository alertRuleRepository;
+    private final UserFundHoldingRepository userFundHoldingRepository;
+    private final UserFundDailyProfitSnapshotRepository dailyProfitSnapshotRepository;
+    private final UserFundOperationRecordRepository operationRecordRepository;
     private final PasswordEncoder passwordEncoder;
+    private final Clock clock = Clock.systemDefaultZone();
 
     public DemoDataSeeder(
         UserRepository userRepository,
@@ -68,6 +93,7 @@ public class DemoDataSeeder implements CommandLineRunner {
         FundEstimateRepository fundEstimateRepository,
         NavHistoryRepository navHistoryRepository,
         WatchlistRepository watchlistRepository,
+        WatchlistGroupRepository watchlistGroupRepository,
         PortfolioRepository portfolioRepository,
         HoldingLotRepository holdingLotRepository,
         PaperOrderRepository paperOrderRepository,
@@ -75,6 +101,9 @@ public class DemoDataSeeder implements CommandLineRunner {
         ImportJobRepository importJobRepository,
         WeeklyReportRepository weeklyReportRepository,
         AlertRuleRepository alertRuleRepository,
+        UserFundHoldingRepository userFundHoldingRepository,
+        UserFundDailyProfitSnapshotRepository dailyProfitSnapshotRepository,
+        UserFundOperationRecordRepository operationRecordRepository,
         PasswordEncoder passwordEncoder
     ) {
         this.userRepository = userRepository;
@@ -84,6 +113,7 @@ public class DemoDataSeeder implements CommandLineRunner {
         this.fundEstimateRepository = fundEstimateRepository;
         this.navHistoryRepository = navHistoryRepository;
         this.watchlistRepository = watchlistRepository;
+        this.watchlistGroupRepository = watchlistGroupRepository;
         this.portfolioRepository = portfolioRepository;
         this.holdingLotRepository = holdingLotRepository;
         this.paperOrderRepository = paperOrderRepository;
@@ -91,6 +121,9 @@ public class DemoDataSeeder implements CommandLineRunner {
         this.importJobRepository = importJobRepository;
         this.weeklyReportRepository = weeklyReportRepository;
         this.alertRuleRepository = alertRuleRepository;
+        this.userFundHoldingRepository = userFundHoldingRepository;
+        this.dailyProfitSnapshotRepository = dailyProfitSnapshotRepository;
+        this.operationRecordRepository = operationRecordRepository;
         this.passwordEncoder = passwordEncoder;
     }
 
@@ -103,7 +136,7 @@ public class DemoDataSeeder implements CommandLineRunner {
 
         log.info("Seeding demo backend data for FundCat");
 
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(clock);
         UserEntity user = new UserEntity();
         user.setId("user-demo-001");
         user.setDisplayName("Demo Analyst");
@@ -164,10 +197,15 @@ public class DemoDataSeeder implements CommandLineRunner {
         fundSeeds.forEach(seed -> navHistory.addAll(buildNavSeries(seed)));
         navHistoryRepository.saveAll(navHistory);
 
-        watchlistRepository.saveAll(List.of(
+        List<WatchlistEntity> watchlists = watchlistRepository.saveAll(List.of(
             watchlist(user.getId(), "000001", "主账户 AI 进攻仓"),
             watchlist(user.getId(), "005827", "稳健底仓"),
             watchlist(user.getId(), "519674", "趋势增强观察")
+        ));
+        watchlistGroupRepository.saveAll(List.of(
+            watchlistGroup(watchlists.get(0).getId(), "成长进攻"),
+            watchlistGroup(watchlists.get(1).getId(), "稳健配置"),
+            watchlistGroup(watchlists.get(2).getId(), "行业主题")
         ));
 
         PortfolioEntity core = portfolio("portfolio-core", user.getId(), "核心组合", "支付宝模拟仓", 18000, now.minusDays(30));
@@ -187,10 +225,9 @@ public class DemoDataSeeder implements CommandLineRunner {
             order(satellite.getId(), "519674", "银河创新成长混合", "SELL", 1200, 812.00, 1.20, "FILLED", "兑现部分弹性", now.minusDays(5))
         ));
 
-        sipPlanRepository.saveAll(List.of(
-            sip(core.getId(), "005827", "中欧价值回报混合", 800, "WEEKLY", now.plusDays(2)),
-            sip(satellite.getId(), "519674", "银河创新成长混合", 500, "BIWEEKLY", now.plusDays(5))
-        ));
+        SipPlanEntity coreSip = sip(user.getId(), core.getId(), "005827", "中欧价值回报混合", 800, "WEEKLY", now.plusDays(2), 0.0015, SIP_STATUS_ACTIVE);
+        SipPlanEntity satelliteSip = sip(user.getId(), satellite.getId(), "519674", "银河创新成长混合", 500, "BIWEEKLY", now.plusDays(5), 0.0010, SIP_STATUS_ACTIVE);
+        sipPlanRepository.saveAll(List.of(coreSip, satelliteSip));
 
         importJobRepository.saveAll(List.of(
             importJob(user.getId(), "示例导入", "DONE", "satellite-march.png", 2, now.minusDays(2)),
@@ -207,6 +244,8 @@ public class DemoDataSeeder implements CommandLineRunner {
             alert(user.getId(), "519674", "weekly_return", 5.00, true, "INBOX"),
             alert(user.getId(), "161725", "sector_rebound", 2.00, false, "INBOX")
         ));
+
+        seedUnifiedHoldings(user.getId(), fundSeeds, coreSip, satelliteSip, now);
     }
 
     private FeatureFlagEntity featureFlag(String code, String name, boolean enabled, String environment, String description, String riskLevel, LocalDateTime createdAt) {
@@ -325,13 +364,18 @@ public class DemoDataSeeder implements CommandLineRunner {
     }
 
     private List<NavHistoryEntity> buildNavSeries(FundSeed seed) {
-        return List.of(
-            nav(seed.code(), roundNav(seed.unitNav() * 0.947), roundNav(seed.accumulatedNav() * 0.934), 28),
-            nav(seed.code(), roundNav(seed.unitNav() * 0.962), roundNav(seed.accumulatedNav() * 0.951), 21),
-            nav(seed.code(), roundNav(seed.unitNav() * 0.978), roundNav(seed.accumulatedNav() * 0.971), 14),
-            nav(seed.code(), roundNav(seed.unitNav() * 0.991), roundNav(seed.accumulatedNav() * 0.987), 7),
-            nav(seed.code(), seed.unitNav(), seed.accumulatedNav(), 0)
-        );
+        List<NavHistoryEntity> series = new ArrayList<>();
+        for (int daysAgo = 30; daysAgo >= 0; daysAgo--) {
+            double progress = (30 - daysAgo) / 30.0;
+            double baseline = seed.unitNav() * (0.94 + (0.06 * progress));
+            double seasonalWave = Math.sin(progress * Math.PI * 3) * seed.unitNav() * 0.006;
+            double unitNav = daysAgo == 0 ? seed.unitNav() : roundNav(baseline + seasonalWave);
+            double accumulatedNav = daysAgo == 0
+                ? seed.accumulatedNav()
+                : roundNav(seed.accumulatedNav() - ((30 - daysAgo) * 0.008));
+            series.add(nav(seed.code(), unitNav, accumulatedNav, daysAgo));
+        }
+        return series;
     }
 
     private double roundNav(double value) {
@@ -354,7 +398,16 @@ public class DemoDataSeeder implements CommandLineRunner {
         entity.setUserId(userId);
         entity.setFundCode(fundCode);
         entity.setNote(note);
-        entity.setCreatedAt(LocalDateTime.now().minusDays(6));
+        entity.setCreatedAt(LocalDateTime.now(clock).minusDays(6));
+        return entity;
+    }
+
+    private WatchlistGroupEntity watchlistGroup(String watchlistId, String groupCode) {
+        WatchlistGroupEntity entity = new WatchlistGroupEntity();
+        entity.setId(UUID.randomUUID().toString());
+        entity.setWatchlistId(watchlistId);
+        entity.setGroupCode(groupCode);
+        entity.setCreatedAt(LocalDateTime.now(clock).minusDays(5));
         return entity;
     }
 
@@ -403,17 +456,160 @@ public class DemoDataSeeder implements CommandLineRunner {
         return entity;
     }
 
-    private SipPlanEntity sip(String portfolioId, String fundCode, String fundName, double amount, String cadence, LocalDateTime nextRunAt) {
+    private SipPlanEntity sip(String userId, String portfolioId, String fundCode, String fundName, double amount, String cadence, LocalDateTime nextRunAt, double feeRate, String status) {
         SipPlanEntity entity = new SipPlanEntity();
         entity.setId(UUID.randomUUID().toString());
         entity.setPortfolioId(portfolioId);
+        entity.setUserId(userId);
         entity.setFundCode(fundCode);
         entity.setFundName(fundName);
         entity.setAmount(amount);
         entity.setCadence(cadence);
         entity.setNextRunAt(nextRunAt);
-        entity.setActive(true);
+        entity.setActive(SIP_STATUS_ACTIVE.equals(status));
+        entity.setStatus(status);
+        entity.setFeeRate(feeRate);
+        entity.setCreatedAt(LocalDateTime.now(clock).minusDays(12));
+        entity.setUpdatedAt(LocalDateTime.now(clock).minusDays(1));
         return entity;
+    }
+
+    private void seedUnifiedHoldings(String userId, List<FundSeed> fundSeeds, SipPlanEntity coreSip, SipPlanEntity satelliteSip, LocalDateTime now) {
+        Map<String, FundSeed> fundSeedMap = fundSeeds.stream().collect(Collectors.toMap(FundSeed::code, Function.identity()));
+        List<UserFundHoldingEntity> holdings = List.of(
+            unifiedHolding(userId, fundSeedMap.get("000001"), 8921.4500, 1.5220, now.minusHours(8)),
+            unifiedHolding(userId, fundSeedMap.get("005827"), 5130.1200, 2.0321, now.minusHours(8)),
+            unifiedHolding(userId, fundSeedMap.get("519674"), 3860.2200, 1.3340, now.minusHours(4)),
+            unifiedHolding(userId, fundSeedMap.get("161725"), 2500.5500, 0.9682, now.minusHours(4))
+        );
+        userFundHoldingRepository.saveAll(holdings);
+
+        List<UserFundOperationRecordEntity> operations = new ArrayList<>();
+        operations.add(operation(userId, "000001", "BUY", "MANUAL", "已执行", LocalDate.now().minusDays(3), 3000, 1942.34, 1.5445, 0.0010, null, "补仓 AI 主线", now.minusDays(3)));
+        operations.add(operation(userId, "005827", "BUY", "MANUAL", "已执行", LocalDate.now().minusDays(8), 1800, 840.12, 2.1425, 0.0010, null, "平衡波动", now.minusDays(8)));
+        operations.add(operation(userId, "519674", "SELL", "MANUAL", "已执行", LocalDate.now().minusDays(5), 1176.11, -812.0000, 1.4484, 0.0010, null, "兑现部分弹性", now.minusDays(5)));
+        operations.add(operation(userId, "005827", "SIP_BUY", "SIP", "已执行", LocalDate.now().minusDays(7), 800, 376.2089, 2.1265, coreSip.getFeeRate(), coreSip.getId(), "历史定投已执行", now.minusDays(7)));
+        operations.add(operation(userId, "519674", "SIP_BUY", "SIP", "确认中", LocalDate.now(), 500, 0, 0, satelliteSip.getFeeRate(), satelliteSip.getId(), "15:00 快照已生成", now.minusHours(1)));
+        operationRecordRepository.saveAll(operations);
+
+        List<UserFundDailyProfitSnapshotEntity> snapshots = new ArrayList<>();
+        for (UserFundHoldingEntity holding : holdings) {
+            List<NavHistoryEntity> history = navHistoryRepository.findByFundCodeAndTradeDateBetweenOrderByTradeDateAsc(
+                holding.getFundCode(),
+                LocalDate.now().minusDays(30),
+                LocalDate.now()
+            );
+            Map<LocalDate, NavHistoryEntity> navByDate = history.stream().collect(Collectors.toMap(NavHistoryEntity::getTradeDate, Function.identity()));
+            List<LocalDate> orderedDates = history.stream().map(NavHistoryEntity::getTradeDate).sorted().toList();
+            for (int i = 0; i < orderedDates.size(); i++) {
+                LocalDate tradeDate = orderedDates.get(i);
+                double nav = navByDate.get(tradeDate).getUnitNav();
+                double previousNav = i == 0 ? nav : navByDate.get(orderedDates.get(i - 1)).getUnitNav();
+                snapshots.add(snapshot(
+                    userId,
+                    holding.getFundCode(),
+                    tradeDate,
+                    holding.getShares(),
+                    holding.getAverageCost(),
+                    nav,
+                    roundMoney(holding.getShares() * nav),
+                    roundMoney(holding.getShares() * (nav - previousNav)),
+                    roundMoney((holding.getShares() * nav) - (holding.getShares() * holding.getAverageCost())),
+                    roundPercent((((holding.getShares() * nav) - (holding.getShares() * holding.getAverageCost())) / Math.max(holding.getShares() * holding.getAverageCost(), 0.0001)) * 100),
+                    now
+                ));
+            }
+        }
+        dailyProfitSnapshotRepository.saveAll(snapshots);
+    }
+
+    private UserFundHoldingEntity unifiedHolding(String userId, FundSeed seed, double shares, double averageCost, LocalDateTime updatedAt) {
+        UserFundHoldingEntity entity = new UserFundHoldingEntity();
+        entity.setId(UUID.randomUUID().toString());
+        entity.setUserId(userId);
+        entity.setFundCode(seed.code());
+        entity.setFundName(seed.name());
+        entity.setShares(shares);
+        entity.setAverageCost(averageCost);
+        double marketValue = roundMoney(shares * seed.estimatedNav());
+        double totalCost = shares * averageCost;
+        entity.setMarketValue(marketValue);
+        entity.setHoldingPnl(roundMoney(marketValue - totalCost));
+        entity.setHoldingPnlRate(roundPercent(((marketValue - totalCost) / Math.max(totalCost, 0.0001)) * 100));
+        entity.setUpdatedAt(updatedAt);
+        return entity;
+    }
+
+    private UserFundOperationRecordEntity operation(
+        String userId,
+        String fundCode,
+        String operation,
+        String source,
+        String status,
+        LocalDate tradeDate,
+        double amount,
+        double sharesDelta,
+        double nav,
+        double feeRate,
+        String sipPlanId,
+        String note,
+        LocalDateTime createdAt
+    ) {
+        UserFundOperationRecordEntity entity = new UserFundOperationRecordEntity();
+        entity.setId(UUID.randomUUID().toString());
+        entity.setUserId(userId);
+        entity.setFundCode(fundCode);
+        entity.setOperation(operation);
+        entity.setSource(source);
+        entity.setStatus(status);
+        entity.setTradeDate(tradeDate);
+        entity.setAmount(amount);
+        entity.setSharesDelta(sharesDelta);
+        entity.setNav(nav);
+        entity.setFeeRate(feeRate);
+        entity.setFeeAmount(roundMoney(amount * feeRate));
+        entity.setSipPlanId(sipPlanId);
+        entity.setNote(note);
+        entity.setCreatedAt(createdAt);
+        entity.setUpdatedAt(createdAt.plusMinutes(5));
+        return entity;
+    }
+
+    private UserFundDailyProfitSnapshotEntity snapshot(
+        String userId,
+        String fundCode,
+        LocalDate tradeDate,
+        double shares,
+        double averageCost,
+        double nav,
+        double marketValue,
+        double dailyPnl,
+        double totalPnl,
+        double totalPnlRate,
+        LocalDateTime updatedAt
+    ) {
+        UserFundDailyProfitSnapshotEntity entity = new UserFundDailyProfitSnapshotEntity();
+        entity.setId(UUID.randomUUID().toString());
+        entity.setUserId(userId);
+        entity.setFundCode(fundCode);
+        entity.setTradeDate(tradeDate);
+        entity.setShares(shares);
+        entity.setAverageCost(averageCost);
+        entity.setNav(nav);
+        entity.setMarketValue(marketValue);
+        entity.setDailyPnl(dailyPnl);
+        entity.setTotalPnl(totalPnl);
+        entity.setTotalPnlRate(totalPnlRate);
+        entity.setUpdatedAt(updatedAt);
+        return entity;
+    }
+
+    private double roundMoney(double value) {
+        return BigDecimal.valueOf(value).setScale(2, RoundingMode.HALF_UP).doubleValue();
+    }
+
+    private double roundPercent(double value) {
+        return BigDecimal.valueOf(value).setScale(4, RoundingMode.HALF_UP).doubleValue();
     }
 
     private ImportJobEntity importJob(String userId, String platform, String status, String fileName, int recognizedHoldings, LocalDateTime createdAt) {

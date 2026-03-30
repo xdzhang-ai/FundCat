@@ -9,6 +9,12 @@ import {
   defaultUsername,
 } from './constants'
 
+function currentLocalDateString() {
+  const now = new Date()
+  const timezoneOffset = now.getTimezoneOffset() * 60 * 1000
+  return new Date(now.getTime() - timezoneOffset).toISOString().slice(0, 10)
+}
+
 export function createEmptyAppData(): AppDataState {
   return {
     overviewDashboard: null,
@@ -19,10 +25,14 @@ export function createEmptyAppData(): AppDataState {
     featureFlags: null,
     funds: null,
     selectedFund: null,
+    selectedFundHoldingInsight: null,
     watchlist: null,
     portfolios: null,
+    holdingsOverview: null,
     orders: null,
+    localHoldingHistory: [],
     sipPlans: null,
+    sipRecordsByPlanId: {},
     reports: null,
     alerts: null,
     importJobs: null,
@@ -41,6 +51,11 @@ export function createDefaultWorkspaceInputs() {
     watchlistGroups: createDefaultWatchlistGroups(),
     holdingAmount: '',
     holdingPnl: '',
+    holdingOperationAmount: '',
+    holdingOperationShares: '',
+    holdingOperationTradeDate: currentLocalDateString(),
+    holdingOperationTiming: 'AFTER_3PM' as const,
+    holdingOperationFeeRate: '0',
     sipCadence: defaultSipCadence,
     sipWeekday: defaultSipWeekday,
     sipMonthDay: defaultSipMonthDay,

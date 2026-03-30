@@ -4,7 +4,9 @@ import type {
   DashboardResponse,
   FeatureFlag,
   FundDetail,
+  HoldingInsight,
   HoldingLot,
+  HoldingsOverviewResponse,
   ImportJob,
   OverviewHeroMetricsResponse,
   OverviewRecentActionsResponse,
@@ -12,6 +14,7 @@ import type {
   OverviewWatchlistPulseResponse,
   PaperOrder,
   PortfolioSummary,
+  SipExecutionRecord,
   SipPlan,
   WatchlistItem,
   WeeklyReport,
@@ -35,10 +38,14 @@ export type AppDataState = {
   featureFlags: FeatureFlag[] | null
   funds: import('@fundcat/contracts').FundCard[] | null
   selectedFund: FundDetail | null
+  selectedFundHoldingInsight: HoldingInsight | null
   watchlist: WatchlistItem[] | null
   portfolios: PortfolioSummary[] | null
+  holdingsOverview: HoldingsOverviewResponse | null
   orders: PaperOrder[] | null
+  localHoldingHistory: LocalHoldingHistoryItem[]
   sipPlans: SipPlan[] | null
+  sipRecordsByPlanId: Record<string, SipExecutionRecord[]>
   reports: WeeklyReport[] | null
   alerts: AlertRule[] | null
   importJobs: ImportJob[] | null
@@ -55,6 +62,14 @@ export type PendingHoldingInput = {
   mode: 'add' | 'edit'
 }
 
+export type PendingHoldingOperationInput = {
+  code: string
+  name: string
+  operation: 'BUY' | 'SELL'
+}
+
+export type HoldingOperationTimingInput = 'BEFORE_3PM' | 'AFTER_3PM'
+
 export type PendingSipInput = {
   code: string
   name: string
@@ -68,3 +83,20 @@ export type LocalHoldingDraft = HoldingLot & {
 }
 
 export type LocalSipPlanDraft = SipPlan
+
+export type LocalHoldingHistoryItem = {
+  id: string
+  fundCode: string
+  fundName: string
+  historyType: 'BUILD'
+  amount: number
+  shares: number
+  fee: number
+  feeRate: number
+  status: '已执行'
+  tradeDate: string
+  executedAt: string
+  source: 'HOLDING_SNAPSHOT'
+}
+
+export type FundOperationHistoryItem = PaperOrder | LocalHoldingHistoryItem

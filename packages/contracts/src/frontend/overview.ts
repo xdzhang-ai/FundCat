@@ -1,6 +1,6 @@
 /** 仪表盘契约，优先表达前端页面真实需要的摘要数据，而不是数据库全量聚合。 */
 import type { FeatureFlag, MetricTone, UserProfile } from './shared'
-import type { RecentOrderListResponse, PaperOrder, PortfolioSummary } from './holdings'
+import type { RecentOrderListResponse, PortfolioSummary } from './holdings'
 import type { SipPlan, SipPlanDigest, AlertRule, ImportJob, WeeklyReport } from './sipPlans'
 import type { WatchlistItem } from './watchlist'
 
@@ -45,7 +45,7 @@ export type DashboardResponse = {
   featureFlags: FeatureFlag[]
   watchlist: WatchlistItem[]
   portfolios: PortfolioSummary[]
-  orders: PaperOrder[]
+  orders: RecentOrderListResponse
   sipPlans: SipPlan[]
   reports: WeeklyReport[]
   alerts: AlertRule[]

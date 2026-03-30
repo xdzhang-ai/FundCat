@@ -1,5 +1,9 @@
 package com.winter.fund.modules.auth.service;
 
+/**
+ * 认证模块服务，负责封装该模块的核心业务逻辑。
+ */
+
 import com.winter.fund.modules.auth.model.AuthDtos;
 import com.winter.fund.modules.auth.model.CurrentUser;
 import com.winter.fund.modules.auth.model.UserEntity;
@@ -48,6 +52,7 @@ public class AuthService {
             log.warn("Registration rejected due to duplicate username, username={}", request.username());
             throw new IllegalArgumentException("用户名已存在");
         }
+        log.info("User persisted successfully, userId={}, username={}", saved.getId(), saved.getUsername());
         return toAuthResponse(saved, tokenService.issue(saved));
     }
 
@@ -71,6 +76,7 @@ public class AuthService {
             .orElseThrow(() -> new IllegalArgumentException("Unable to rebuild session"));
         UserEntity user = userRepository.findById(currentUser.id())
             .orElseThrow(() -> new NotFoundException("User not found"));
+        log.info("Access token refreshed, userId={}", user.getId());
         return toAuthResponse(user, tokens);
     }
 
@@ -84,6 +90,7 @@ public class AuthService {
         String accessToken = extractBearerToken(authorizationHeader);
         log.info("Revoking access token");
         tokenService.revokeAccessToken(accessToken);
+        log.info("Access token revoked");
     }
 
     private AuthDtos.AuthResponse toAuthResponse(UserEntity user, TokenService.IssuedTokens issuedTokens) {

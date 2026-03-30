@@ -1,47 +1,8 @@
 /** 定投详情页模型层，负责计划状态、执行记录和定投周期描述的纯逻辑。 */
-import type { SipPlan } from '@fundcat/contracts'
-
-export type SipRecord = {
-  id: string
-  executedOn: string
-  amount: number
-  status: '已执行' | '已暂停' | '已停止'
-}
+import type { SipExecutionRecord, SipPlan } from '@fundcat/contracts'
 
 export type SipCadenceInput = 'DAILY' | 'WEEKLY' | 'MONTHLY'
 export type SipWeekdayInput = '1' | '2' | '3' | '4' | '5' | '6' | '0'
-
-export function buildSipRecords(plan: SipPlan, status: ReturnType<typeof resolveSipStatus>): SipRecord[] {
-  const baseDate = new Date(plan.nextRunAt)
-  const dayStep = cadenceDayStep(plan.cadence)
-  const now = Date.now()
-
-  return Array.from({ length: 6 }, (_, index) => {
-    const executedAt = new Date(baseDate)
-    executedAt.setDate(executedAt.getDate() - dayStep * (index + 1))
-    return {
-      id: `${plan.id}-${index}`,
-      executedOn: executedAt.toISOString().slice(0, 10),
-      amount: plan.amount,
-      status: executedAt.getTime() <= now ? '已执行' : status === '暂停' ? '已暂停' : '已停止',
-    }
-  })
-}
-
-function cadenceDayStep(cadence: string) {
-  switch (cadence) {
-    case 'DAILY':
-      return 1
-    case 'WEEKLY':
-      return 7
-    case 'BIWEEKLY':
-      return 14
-    case 'MONTHLY':
-      return 30
-    default:
-      return 7
-  }
-}
 
 export function resolveSipStatus(plan: SipPlan) {
   if (plan.active) {
@@ -86,13 +47,11 @@ export function statusToneClass(status: ReturnType<typeof resolveSipStatus>) {
   }
 }
 
-export function recordToneClass(status: SipRecord['status']) {
+export function recordToneClass(status: SipExecutionRecord['status']) {
   switch (status) {
     case '已执行':
       return 'text-emerald-300'
-    case '已暂停':
-      return 'text-slate-300'
-    case '已停止':
-      return 'text-red-300'
+    case '确认中':
+      return 'text-sky-300'
   }
 }

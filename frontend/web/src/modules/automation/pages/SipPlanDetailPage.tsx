@@ -1,12 +1,11 @@
 /** 定投详情页，组装计划概览、编辑面板和执行记录列表。 */
-import type { SipPlan } from '@fundcat/contracts'
+import type { SipExecutionRecord, SipPlan } from '@fundcat/contracts'
 import { ArrowLeft } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { SectionCard } from '../../../common/components/SectionCard'
 import { formatCurrency } from '../../../common/utils/fundInsights'
 import { SipPlanEditPanel } from '../components/SipPlanEditPanel'
 import {
-  buildSipRecords,
   deriveMonthDay,
   deriveWeekday,
   describeCadence,
@@ -20,12 +19,14 @@ import {
 
 export function SipPlanDetailPage({
   plan,
+  records,
   onBack,
   onEditPlan,
   onTogglePlan,
   onStopPlan,
 }: {
   plan: SipPlan
+  records: SipExecutionRecord[]
   onBack: () => void
   onEditPlan: (
     planId: string,
@@ -40,7 +41,6 @@ export function SipPlanDetailPage({
   onStopPlan: (planId: string) => void
 }) {
   const status = resolveSipStatus(plan)
-  const records = buildSipRecords(plan, status)
   const [editOpen, setEditOpen] = useState(false)
   const [amount, setAmount] = useState(String(Number(plan.amount.toFixed(2))))
   const [cadence, setCadence] = useState<SipCadenceInput>(normalizeCadence(plan.cadence))

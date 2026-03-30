@@ -1,13 +1,13 @@
-/** 基金详情页操作条，集中承接自选、持仓、定投和 OCR 等交互入口。 */
-import { ArrowLeft, BellRing, BriefcaseBusiness, Radar, ScanSearch, WalletCards } from 'lucide-react'
+/** 基金详情页操作条，集中承接自选、持仓、买卖补记和定投等交互入口。 */
+import { ArrowLeft, BellRing, BriefcaseBusiness, Plus, Radar, TrendingDown, WalletCards } from 'lucide-react'
 import { QuickActionButton } from '../../../common/components/WebUi'
 import type { WatchlistGroup } from '../../../common/appTypes'
+import { HoldingOperationPanel } from './HoldingOperationPanel'
 import type { FundDetailPageProps } from '../model/types'
 
 type Props = Pick<
   FundDetailPageProps,
   | 'selectedFund'
-  | 'isFlagEnabled'
   | 'onBack'
   | 'onQuickAction'
   | 'watchlistPickerOpen'
@@ -24,6 +24,20 @@ type Props = Pick<
   | 'onHoldingPnlChange'
   | 'onCancelHoldingInput'
   | 'onConfirmHoldingInput'
+  | 'holdingOperationInputOpen'
+  | 'holdingOperationType'
+  | 'holdingOperationAmount'
+  | 'holdingOperationFeeRate'
+  | 'holdingOperationShares'
+  | 'holdingOperationTiming'
+  | 'holdingOperationTradeDate'
+  | 'onHoldingOperationAmountChange'
+  | 'onHoldingOperationFeeRateChange'
+  | 'onHoldingOperationSharesChange'
+  | 'onHoldingOperationTimingChange'
+  | 'onHoldingOperationTradeDateChange'
+  | 'onCancelHoldingOperation'
+  | 'onConfirmHoldingOperation'
   | 'sipPlanExists'
   | 'sipInputOpen'
   | 'sipCadence'
@@ -43,7 +57,6 @@ type Props = Pick<
 export function FundDetailActionBar(props: Props) {
   const {
     selectedFund,
-    isFlagEnabled,
     onBack,
     onQuickAction,
     watchlistPickerOpen,
@@ -60,6 +73,20 @@ export function FundDetailActionBar(props: Props) {
     onHoldingPnlChange,
     onCancelHoldingInput,
     onConfirmHoldingInput,
+    holdingOperationInputOpen,
+    holdingOperationType,
+    holdingOperationAmount,
+    holdingOperationFeeRate,
+    holdingOperationShares,
+    holdingOperationTiming,
+    holdingOperationTradeDate,
+    onHoldingOperationAmountChange,
+    onHoldingOperationFeeRateChange,
+    onHoldingOperationSharesChange,
+    onHoldingOperationTimingChange,
+    onHoldingOperationTradeDateChange,
+    onCancelHoldingOperation,
+    onConfirmHoldingOperation,
     sipPlanExists,
     sipInputOpen,
     sipCadence,
@@ -150,6 +177,60 @@ export function FundDetailActionBar(props: Props) {
         修改持仓
       </button>
       <div className="relative">
+        <QuickActionButton icon={Plus} label="买入" onClick={() => onQuickAction('buy')} />
+        {holdingOperationInputOpen && holdingOperationType === 'BUY' ? (
+          <HoldingOperationPanel
+            fundName={selectedFund.name}
+            operation={holdingOperationType}
+            tradeDate={holdingOperationTradeDate}
+            amount={holdingOperationAmount}
+            feeRate={holdingOperationFeeRate}
+            shares={holdingOperationShares}
+            timing={holdingOperationTiming}
+            onTradeDateChange={onHoldingOperationTradeDateChange}
+            onAmountChange={onHoldingOperationAmountChange}
+            onFeeRateChange={onHoldingOperationFeeRateChange}
+            onSharesChange={onHoldingOperationSharesChange}
+            onTimingChange={onHoldingOperationTimingChange}
+            onCancel={onCancelHoldingOperation}
+            onConfirm={onConfirmHoldingOperation}
+          />
+        ) : null}
+      </div>
+      <div className="relative">
+        <button
+          type="button"
+          disabled={!selectedFund.held}
+          onClick={() => onQuickAction('sell')}
+          className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm transition ${
+            selectedFund.held
+              ? 'border-white/10 bg-white/5 text-slate-200 hover:border-[color:var(--fc-color-accent)]/50 hover:text-white'
+              : 'cursor-not-allowed border-white/8 bg-white/5 text-slate-500'
+          }`}
+        >
+          <TrendingDown className="h-4 w-4" />
+          卖出
+        </button>
+        {holdingOperationInputOpen && holdingOperationType === 'SELL' ? (
+          <HoldingOperationPanel
+            fundName={selectedFund.name}
+            operation={holdingOperationType}
+            tradeDate={holdingOperationTradeDate}
+            amount={holdingOperationAmount}
+            feeRate={holdingOperationFeeRate}
+            shares={holdingOperationShares}
+            timing={holdingOperationTiming}
+            onTradeDateChange={onHoldingOperationTradeDateChange}
+            onAmountChange={onHoldingOperationAmountChange}
+            onFeeRateChange={onHoldingOperationFeeRateChange}
+            onSharesChange={onHoldingOperationSharesChange}
+            onTimingChange={onHoldingOperationTimingChange}
+            onCancel={onCancelHoldingOperation}
+            onConfirm={onConfirmHoldingOperation}
+          />
+        ) : null}
+      </div>
+      <div className="relative">
         <button
           type="button"
           onClick={() => (sipPlanExists ? onOpenSipPlan() : onQuickAction('sip'))}
@@ -178,7 +259,6 @@ export function FundDetailActionBar(props: Props) {
           />
         ) : null}
       </div>
-      {isFlagEnabled('ocr_import') ? <QuickActionButton icon={ScanSearch} label="建 OCR 任务" onClick={() => onQuickAction('ocr')} /> : null}
     </div>
   )
 }

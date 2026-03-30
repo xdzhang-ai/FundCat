@@ -1,5 +1,9 @@
 package com.winter.fund.modules.ops.model;
 
+/**
+ * 运维模块实体文件，负责描述数据库持久化对象结构。
+ */
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;

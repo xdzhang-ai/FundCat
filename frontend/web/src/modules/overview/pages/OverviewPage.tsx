@@ -68,7 +68,7 @@ export function OverviewPage({
                 <div className="flex items-center justify-between gap-4">
                   <div>
                     <p className="font-medium text-white">{order.fundName}</p>
-                    <p className="mt-1 text-sm text-slate-500">{order.executedAt.replace('T', ' ')}</p>
+                    <p className="mt-1 text-sm text-slate-500">{formatOrderTime(order)}</p>
                   </div>
                   <div className="text-right">
                     <p
@@ -103,4 +103,10 @@ export function OverviewPage({
       </SectionCard>
     </>
   )
+}
+
+function formatOrderTime(order: PaperOrder) {
+  return typeof order.executedAt === 'string' && order.executedAt.length > 0
+    ? order.executedAt.replace('T', ' ')
+    : '时间待补充'
 }

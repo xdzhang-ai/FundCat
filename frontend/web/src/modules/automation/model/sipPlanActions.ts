@@ -1,9 +1,8 @@
 /** 定投模块动作层，封装创建、跳转、编辑、暂停和停止计划等交互逻辑。 */
-import type { FundCard, SipPlan } from '@fundcat/contracts'
+import type { FundCard } from '@fundcat/contracts'
 import type { Dispatch, SetStateAction } from 'react'
 import type {
   AppDataState,
-  LocalSipPlanDraft,
   PendingHoldingInput,
   PendingSipInput,
   PendingWatchlistSelection,
@@ -16,14 +15,13 @@ import { createDefaultWorkspaceInputs } from '../../../common/workspace/state'
 import {
   findCurrentSipPlanByFundCode,
   findSipPlanByFundCode,
-  mergeLocalSipPlanDrafts,
   resolveSipNextRunAt,
+  resolveSipStatus,
   sipCadenceLabel,
 } from '../../../common/utils/sipPlans'
 
 type CreateSipPlanActionsOptions = {
   getData: () => AppDataState
-  getLocalSipPlanDrafts: () => LocalSipPlanDraft[]
   getPendingSipAmount: () => string
   getPendingSipCadence: () => SipCadenceInput
   getPendingSipInput: () => PendingSipInput | null
@@ -32,7 +30,6 @@ type CreateSipPlanActionsOptions = {
   navigateToPath: (path: string) => void
   setActionMessage: Dispatch<SetStateAction<string | null>>
   setData: Dispatch<SetStateAction<AppDataState>>
-  setLocalSipPlanDrafts: Dispatch<SetStateAction<LocalSipPlanDraft[]>>
   setPendingHoldingAmount: Dispatch<SetStateAction<string>>
   setPendingHoldingInput: Dispatch<SetStateAction<PendingHoldingInput | null>>
   setPendingHoldingPnl: Dispatch<SetStateAction<string>>
@@ -47,7 +44,6 @@ type CreateSipPlanActionsOptions = {
 
 export function createSipPlanActions({
   getData,
-  getLocalSipPlanDrafts,
   getPendingSipAmount,
   getPendingSipCadence,
   getPendingSipInput,
@@ -56,7 +52,6 @@ export function createSipPlanActions({
   navigateToPath,
   setActionMessage,
   setData,
-  setLocalSipPlanDrafts,
   setPendingHoldingAmount,
   setPendingHoldingInput,
   setPendingHoldingPnl,
@@ -69,10 +64,7 @@ export function createSipPlanActions({
   setPendingWatchlistSelection,
 }: CreateSipPlanActionsOptions) {
   function openSipInput(fund: Pick<FundCard, 'code' | 'name'>) {
-    const existingPlan = findCurrentSipPlanByFundCode(
-      fund.code,
-      mergeLocalSipPlanDrafts(getData().sipPlans, getLocalSipPlanDrafts()),
-    )
+    const existingPlan = findCurrentSipPlanByFundCode(fund.code, getData().sipPlans)
     if (existingPlan) {
       navigateToPath(`/automation/${existingPlan.id}`)
       return
@@ -93,24 +85,14 @@ export function createSipPlanActions({
   async function confirmAddSip() {
     const pending = getPendingSipInput()
     const selectedFund = getData().selectedFund
-    const portfolios = getData().portfolios
     const amount = Number(getPendingSipAmount())
 
     if (!pending || !selectedFund) return
-    if (!portfolios?.length) {
-      setActionMessage('当前没有可用组合，暂时无法创建定投计划')
-      return
-    }
     if (!Number.isFinite(amount) || amount <= 0) {
       setActionMessage('定投金额必须大于 0')
       return
     }
-    if (
-      findCurrentSipPlanByFundCode(
-        pending.code,
-        mergeLocalSipPlanDrafts(getData().sipPlans, getLocalSipPlanDrafts()),
-      )
-    ) {
+    if (findCurrentSipPlanByFundCode(pending.code, getData().sipPlans)) {
       setActionMessage(`${pending.name} 已设定投计划`)
       return
     }
@@ -123,11 +105,11 @@ export function createSipPlanActions({
 
     try {
       await workspaceApi.createSip({
-        portfolioId: portfolios[0].id,
         fundCode: pending.code,
         amount,
         cadence,
         nextRunAt: nextRunAt.toISOString().slice(0, 19),
+        feeRate: 0,
       })
       const sipPlans = await workspaceApi.sipPlans()
       setData((current) => ({ ...current, sipPlans }))
@@ -143,18 +125,8 @@ export function createSipPlanActions({
     }
   }
 
-  function updateLocalSipPlan(planId: string, updater: (plan: SipPlan) => SipPlan) {
-    const effectiveSipPlans = mergeLocalSipPlanDrafts(getData().sipPlans, getLocalSipPlanDrafts())
-    const targetPlan = effectiveSipPlans?.find((plan) => plan.id === planId)
-    if (!targetPlan) return null
-    const nextPlan = updater(targetPlan)
-    setLocalSipPlanDrafts((current) => [...current.filter((draft) => draft.id !== planId), nextPlan])
-    return nextPlan
-  }
-
   function handleOpenSipPlan(code: string) {
-    const effectivePlans = mergeLocalSipPlanDrafts(getData().sipPlans, getLocalSipPlanDrafts())
-    const plan = findCurrentSipPlanByFundCode(code, effectivePlans) ?? findSipPlanByFundCode(code, effectivePlans)
+    const plan = findCurrentSipPlanByFundCode(code, getData().sipPlans) ?? findSipPlanByFundCode(code, getData().sipPlans)
     if (!plan) {
       setActionMessage('当前基金还没有定投计划')
       return
@@ -162,7 +134,7 @@ export function createSipPlanActions({
     navigateToPath(`/automation/${plan.id}`)
   }
 
-  function handleEditSipPlan(
+  async function handleEditSipPlan(
     planId: string,
     payload: {
       amount: number
@@ -171,60 +143,68 @@ export function createSipPlanActions({
       monthDay?: string
     },
   ) {
-    const nextRunAt = resolveSipNextRunAt(payload.cadence, {
-      weekday: payload.weekday,
-      monthDay: payload.monthDay,
-    })
-    const updatedPlan = updateLocalSipPlan(planId, (plan) => ({
-      ...plan,
-      amount: Number(payload.amount.toFixed(2)),
-      cadence: payload.cadence,
-      nextRunAt: nextRunAt.toISOString().slice(0, 19),
-      active: true,
-    }))
-    if (updatedPlan) {
-      setActionMessage(`已更新 ${updatedPlan.fundName} 的定投计划`)
-    }
-  }
-
-  function handleToggleSipPlan(planId: string) {
-    const updatedPlan = updateLocalSipPlan(planId, (plan) => {
-      if (plan.active) {
-        return {
-          ...plan,
-          active: false,
-        }
-      }
-      const nextRunAt = resolveSipNextRunAt(
-        plan.cadence === 'MONTHLY' ? 'MONTHLY' : plan.cadence === 'DAILY' ? 'DAILY' : 'WEEKLY',
-        {
-          weekday: String(new Date(plan.nextRunAt).getDay()) as SipWeekdayInput,
-          monthDay: String(new Date(plan.nextRunAt).getDate()),
+    try {
+      const updatedPlan = await workspaceApi.updateSip(planId, {
+        amount: Number(payload.amount.toFixed(2)),
+        cadence: payload.cadence,
+        weekday: payload.cadence === 'WEEKLY' ? payload.weekday : undefined,
+        monthDay: payload.cadence === 'MONTHLY' ? payload.monthDay : undefined,
+        feeRate: 0,
+      })
+      const [sipPlans, records] = await Promise.all([workspaceApi.sipPlans(), workspaceApi.sipRecords(planId)])
+      setData((current) => ({
+        ...current,
+        sipPlans,
+        sipRecordsByPlanId: {
+          ...current.sipRecordsByPlanId,
+          [planId]: records,
         },
-      )
-      return {
-        ...plan,
-        active: true,
-        nextRunAt: nextRunAt.toISOString().slice(0, 19),
-      }
-    })
-    if (updatedPlan) {
-      setActionMessage(updatedPlan.active ? `已恢复 ${updatedPlan.fundName} 的定投计划` : `已暂停 ${updatedPlan.fundName} 的定投计划`)
+      }))
+      setActionMessage(`已更新 ${updatedPlan.fundName} 的定投计划`)
+    } catch (error) {
+      setActionMessage(error instanceof Error ? error.message : '更新定投计划失败')
     }
   }
 
-  function handleStopSipPlan(planId: string) {
-    const updatedPlan = updateLocalSipPlan(planId, (plan) => {
-      const stoppedAt = new Date()
-      stoppedAt.setDate(stoppedAt.getDate() - 1)
-      return {
-        ...plan,
-        active: false,
-        nextRunAt: stoppedAt.toISOString().slice(0, 19),
-      }
-    })
-    if (updatedPlan) {
+  async function handleToggleSipPlan(planId: string) {
+    const plan = getData().sipPlans?.find((item) => item.id === planId)
+    if (!plan) return
+
+    try {
+      const updatedPlan =
+        resolveSipStatus(plan) === '生效'
+          ? await workspaceApi.pauseSip(planId)
+          : await workspaceApi.resumeSip(planId)
+      const [sipPlans, records] = await Promise.all([workspaceApi.sipPlans(), workspaceApi.sipRecords(planId)])
+      setData((current) => ({
+        ...current,
+        sipPlans,
+        sipRecordsByPlanId: {
+          ...current.sipRecordsByPlanId,
+          [planId]: records,
+        },
+      }))
+      setActionMessage(updatedPlan.active ? `已恢复 ${updatedPlan.fundName} 的定投计划` : `已暂停 ${updatedPlan.fundName} 的定投计划`)
+    } catch (error) {
+      setActionMessage(error instanceof Error ? error.message : '更新定投状态失败')
+    }
+  }
+
+  async function handleStopSipPlan(planId: string) {
+    try {
+      const updatedPlan = await workspaceApi.stopSip(planId)
+      const [sipPlans, records] = await Promise.all([workspaceApi.sipPlans(), workspaceApi.sipRecords(planId)])
+      setData((current) => ({
+        ...current,
+        sipPlans,
+        sipRecordsByPlanId: {
+          ...current.sipRecordsByPlanId,
+          [planId]: records,
+        },
+      }))
       setActionMessage(`已停止 ${updatedPlan.fundName} 的定投计划`)
+    } catch (error) {
+      setActionMessage(error instanceof Error ? error.message : '停止定投计划失败')
     }
   }
 

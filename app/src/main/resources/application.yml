@@ -1,3 +1,4 @@
+# 应用默认配置文件，主要用于本地 H2 与通用运行参数。
 spring:
   application:
     name: fundcat-api
@@ -20,7 +21,7 @@ spring:
       enabled: true
       path: /h2-console
   jackson:
-    time-zone: UTC
+    time-zone: ${APP_TIMEZONE:${user.timezone:UTC}}
   data:
     redis:
       host: localhost
@@ -28,6 +29,10 @@ spring:
       password: ${REDIS_PASSWORD:}
       repositories:
         enabled: false
+  task:
+    scheduling:
+      pool:
+        size: 4
 
 server:
   port: 8080
@@ -47,3 +52,18 @@ fundcat:
     access-token-ttl-minutes: 240
     refresh-token-ttl-days: 14
     session-store: ${AUTH_SESSION_STORE:memory}
+  market-data:
+    timezone: ${APP_TIMEZONE:${user.timezone:UTC}}
+    estimate-poll-interval-minutes: 5
+    nav-poll-interval-minutes: 20
+    trade-backfill-max-days: 30
+    estimate-trading-start: "09:30"
+    estimate-trading-end: "15:00"
+    nav-poll-start: "20:00"
+    nav-poll-end: "23:59"
+    nav-backup-poll-start: "08:00"
+    nav-backup-poll-end: "10:00"
+
+logging:
+  file:
+    name: logs/fundcat-api.log

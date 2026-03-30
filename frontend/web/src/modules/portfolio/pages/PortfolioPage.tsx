@@ -1,5 +1,5 @@
 /** 自选基金页，按分组展示自选列表并提供移除、调整分组等能力。 */
-import type { FundCard, WatchlistItem } from '@fundcat/contracts'
+import type { WatchlistItem } from '@fundcat/contracts'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { SectionCard } from '../../../common/components/SectionCard'
 import { formatCompactPercent } from '../../../common/utils/fundInsights'
@@ -18,14 +18,12 @@ type WatchlistGroup = (typeof groupOrder)[number]
 
 export function PortfolioPage({
   watchlist,
-  funds,
   groupSelections,
   onAssignGroup,
   onOpenFund,
   onRemoveFund,
 }: {
   watchlist: WatchlistItem[]
-  funds: FundCard[]
   groupSelections: Record<string, WatchlistGroup[]>
   onAssignGroup: (codes: string[], group: Exclude<WatchlistGroup, '全部'>) => void
   onOpenFund: (code: string) => void
@@ -48,20 +46,19 @@ export function PortfolioPage({
     watchlist.forEach((item) => {
       if (deduped.has(item.code)) return
 
-      const fund = funds.find((candidate) => candidate.code === item.code)
       const assignedGroup = resolveAssignedGroup(item.code, groupSelections[item.code])
       deduped.set(item.code, {
         code: item.code,
         name: item.name,
-        dayGrowth: fund?.estimatedGrowth ?? item.estimatedGrowth,
-        held: fund?.held ?? false,
+        dayGrowth: item.estimatedGrowth,
+        held: item.held ?? false,
         group: assignedGroup,
         assignedGroup,
       })
     })
 
     return Array.from(deduped.values())
-  }, [funds, groupSelections, watchlist])
+  }, [groupSelections, watchlist])
 
   const visibleRows = useMemo(
     () => (activeGroup === '全部' ? rows : rows.filter((row) => row.group === activeGroup)),

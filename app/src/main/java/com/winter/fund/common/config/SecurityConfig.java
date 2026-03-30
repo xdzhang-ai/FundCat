@@ -1,5 +1,9 @@
 package com.winter.fund.common.config;
 
+/**
+ * 公共配置文件，负责承载全局属性或 Spring 基础设施配置。
+ */
+
 import com.winter.fund.common.config.AuthProperties;
 import com.winter.fund.common.aspect.BearerTokenFilter;
 import jakarta.servlet.http.HttpServletResponse;
@@ -20,7 +24,7 @@ import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 @Configuration
-@EnableConfigurationProperties(AuthProperties.class)
+@EnableConfigurationProperties({ AuthProperties.class, MarketDataProperties.class })
 public class SecurityConfig {
 
     private final BearerTokenFilter bearerTokenFilter;

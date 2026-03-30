@@ -1,5 +1,5 @@
 /** 持仓页，展示当前组合持仓、收益和组合市值摘要。 */
-import type { FundCard, PortfolioSummary } from '@fundcat/contracts'
+import type { HoldingsOverviewResponse } from '@fundcat/contracts'
 import {
   closestCenter,
   DndContext,
@@ -16,7 +16,7 @@ import { motion } from 'framer-motion'
 import { GripVertical } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { SectionCard } from '../../../common/components/SectionCard'
-import { aggregateHoldings, formatCompactPercent, formatCurrency } from '../../../common/utils/fundInsights'
+import { formatCompactPercent, formatCurrency } from '../../../common/utils/fundInsights'
 
 type FixedColumnKey = 'name'
 type MovableColumnKey = 'dayGrowth' | 'todayPnl' | 'marketValue' | 'holdingPnl'
@@ -44,12 +44,10 @@ type HoldingRow = {
 }
 
 export function HoldingsPage({
-  portfolios,
-  funds,
+  overview,
   onOpenFund,
 }: {
-  portfolios: PortfolioSummary[]
-  funds: FundCard[]
+  overview: HoldingsOverviewResponse
   onOpenFund: (code: string) => void
 }) {
   const [movableColumns, setMovableColumns] = useState<MovableColumnKey[]>(initialMovableColumns)
@@ -65,22 +63,15 @@ export function HoldingsPage({
   )
 
   const rows = useMemo<HoldingRow[]>(() => {
-    return aggregateHoldings(portfolios, funds).map((holding) => {
-      const fund = funds.find((item) => item.code === holding.fundCode)
-      const dayGrowth = fund?.estimatedGrowth ?? 0
-      const todayPnl = fund
-        ? holding.shares * (fund.referenceOnly ? fund.estimatedNav - fund.unitNav : fund.unitNav * (fund.dayGrowth / 100))
-        : 0
-      return {
-        fundCode: holding.fundCode,
-        fundName: holding.fundName,
-        dayGrowth,
-        todayPnl,
-        marketValue: holding.currentValue,
-        holdingPnl: holding.pnl,
-      }
-    })
-  }, [funds, portfolios])
+    return overview.items.map((item) => ({
+      fundCode: item.fundCode,
+      fundName: item.fundName,
+      dayGrowth: item.dayGrowth,
+      todayPnl: item.todayPnl,
+      marketValue: item.marketValue,
+      holdingPnl: item.holdingPnl,
+    }))
+  }, [overview.items])
 
   const previewMovableColumns = useMemo(() => {
     if (!activeColumn || !overColumn || activeColumn === overColumn) {

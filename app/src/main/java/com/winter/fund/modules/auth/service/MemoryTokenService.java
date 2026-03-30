@@ -1,5 +1,9 @@
 package com.winter.fund.modules.auth.service;
 
+/**
+ * 认证模块服务，负责封装该模块的核心业务逻辑。
+ */
+
 import com.winter.fund.common.config.AuthProperties;
 import com.winter.fund.modules.auth.model.CurrentUser;
 import com.winter.fund.modules.auth.model.UserEntity;
@@ -9,6 +13,8 @@ import java.time.temporal.ChronoUnit;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 
@@ -16,6 +22,7 @@ import org.springframework.stereotype.Service;
 @ConditionalOnProperty(prefix = "fundcat.auth", name = "session-store", havingValue = "memory", matchIfMissing = true)
 public class MemoryTokenService implements TokenService {
 
+    private static final Logger log = LoggerFactory.getLogger(MemoryTokenService.class);
     private final AuthProperties authProperties;
     private final Clock clock = Clock.systemUTC();
     private final ConcurrentHashMap<String, StoredSession> accessTokens = new ConcurrentHashMap<>();
@@ -42,6 +49,8 @@ public class MemoryTokenService implements TokenService {
         );
         accessTokens.put(accessToken, session);
         refreshTokens.put(refreshToken, session);
+        log.info("In-memory token session issued, userId={}, accessCacheSize={}, refreshCacheSize={}",
+            user.getId(), accessTokens.size(), refreshTokens.size());
         return new IssuedTokens(accessToken, refreshToken, authProperties.getAccessTokenTtlMinutes() * 60L);
     }
 
@@ -62,6 +71,7 @@ public class MemoryTokenService implements TokenService {
         StoredSession session = refreshTokens.remove(token);
         if (session == null || session.refreshExpiry().isBefore(clock.instant())) {
             refreshTokens.remove(token);
+            log.warn("In-memory refresh token rejected");
             return Optional.empty();
         }
         accessTokens.remove(session.accessToken());
@@ -69,6 +79,7 @@ public class MemoryTokenService implements TokenService {
         user.setId(session.userId());
         user.setDisplayName(session.displayName());
         user.setUsername(session.username());
+        log.info("In-memory refresh token consumed, userId={}", user.getId());
         return Optional.of(issue(user));
     }
 
@@ -80,6 +91,7 @@ public class MemoryTokenService implements TokenService {
             return;
         }
         refreshTokens.remove(session.refreshToken());
+        log.info("In-memory token session revoked, userId={}", session.userId());
     }
 
     private void cleanupExpiredTokens() {

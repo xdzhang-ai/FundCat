@@ -1,32 +1,22 @@
 /** 基金详情页持仓洞察区块，展示当前持仓指标和盘中走势参考。 */
-import type { FundCard, FundDetail, PortfolioSummary } from '@fundcat/contracts'
+import type { FundDetail, HoldingInsight } from '@fundcat/contracts'
 import { ChevronDown, ChevronUp } from 'lucide-react'
-import { useMemo } from 'react'
 import { Area, AreaChart, CartesianGrid, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
-import { buildHoldingInsight, formatAmount, formatCompactPercent, formatCurrency } from '../../../common/utils/fundInsights'
+import { formatAmount, formatCompactPercent, formatCurrency } from '../../../common/utils/fundInsights'
 import { buildIntradayTrend, valueSizeClass } from '../model/helpers'
 
 export function HoldingInsightSection({
-  portfolios,
-  funds,
+  holdingInsight,
   selectedFund,
   expanded,
   onToggle,
 }: {
-  portfolios: PortfolioSummary[]
-  funds: FundCard[]
+  holdingInsight: HoldingInsight | null
   selectedFund: FundDetail
   expanded: boolean
   onToggle: () => void
 }) {
-  const holdingInsight = useMemo(
-    () => buildHoldingInsight(portfolios, funds, selectedFund),
-    [funds, portfolios, selectedFund],
-  )
-  const intradayTrend = useMemo(
-    () => buildIntradayTrend(selectedFund, holdingInsight?.averageCost),
-    [selectedFund, holdingInsight?.averageCost],
-  )
+  const intradayTrend = buildIntradayTrend(selectedFund, holdingInsight?.averageCost)
 
   if (!holdingInsight) return null
 

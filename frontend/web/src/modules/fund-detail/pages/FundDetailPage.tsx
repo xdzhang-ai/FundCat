@@ -3,7 +3,6 @@ import { useEffect, useMemo, useState } from 'react'
 import { FundTrendChart } from '../../../common/charts/FundTrendChart'
 import { SectionCard } from '../../../common/components/SectionCard'
 import {
-  buildHoldingInsight,
   buildTrendMarkers,
   calculateRangeReturn,
   filterRange,
@@ -14,10 +13,11 @@ import { CollapsibleBlock } from '../components/CollapsibleBlock'
 import { FundDetailActionBar } from '../components/FundDetailActionBar'
 import { FundDetailHero } from '../components/FundDetailHero'
 import { HoldingInsightSection } from '../components/HoldingInsightSection'
+import { FundOperationHistorySection } from '../components/FundOperationHistorySection'
 import type { FundDetailPageProps } from '../model/types'
 
 export function FundDetailPage(props: FundDetailPageProps) {
-  const { portfolios, orders, sipPlans, funds, selectedFund, isFlagEnabled } = props
+  const { orders, operationHistory, sipPlans, selectedFund, holdingInsight, isFlagEnabled } = props
   const [range, setRange] = useState<FundRangeKey>('3m')
   const [holdingExpanded, setHoldingExpanded] = useState(true)
   const [trendExpanded, setTrendExpanded] = useState(true)
@@ -32,12 +32,15 @@ export function FundDetailPage(props: FundDetailPageProps) {
     setIndustryExpanded(true)
   }, [selectedFund.code])
 
-  const holdingInsight = useMemo(
-    () => buildHoldingInsight(portfolios, funds, selectedFund),
-    [funds, portfolios, selectedFund],
-  )
   const activeSeries = selectedFund.referenceOnly ? selectedFund.estimateHistory : selectedFund.navHistory
   const markerMap = useMemo(() => buildTrendMarkers(orders, sipPlans, selectedFund), [orders, selectedFund, sipPlans])
+  const fundOrders = useMemo(
+    () =>
+      operationHistory
+        .filter((order) => order.fundCode === selectedFund.code)
+        .sort((left, right) => right.executedAt.localeCompare(left.executedAt)),
+    [operationHistory, selectedFund.code],
+  )
   const rangeSeries = useMemo(() => filterRange(activeSeries, range), [activeSeries, range])
   const rangeReturn = calculateRangeReturn(rangeSeries)
   const rangeData = rangeSeries.map((point) => ({
@@ -52,12 +55,13 @@ export function FundDetailPage(props: FundDetailPageProps) {
           <FundDetailHero selectedFund={selectedFund} />
 
           <HoldingInsightSection
-            portfolios={portfolios}
-            funds={funds}
+            holdingInsight={holdingInsight}
             selectedFund={selectedFund}
             expanded={holdingExpanded}
             onToggle={() => setHoldingExpanded((current) => !current)}
           />
+
+          <FundOperationHistorySection orders={fundOrders} />
 
           <CollapsibleBlock
             title="业绩走势"

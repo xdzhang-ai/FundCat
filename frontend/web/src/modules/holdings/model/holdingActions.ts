@@ -1,30 +1,19 @@
 /** 持仓模块动作层，封装新增/修改持仓以及与基金状态联动的更新逻辑。 */
-import type { FundCard, FundDetail, HoldingLot, PortfolioSummary } from '@fundcat/contracts'
+import type { FundCard, HoldingInsight } from '@fundcat/contracts'
 import type { Dispatch, SetStateAction } from 'react'
-import type {
-  AppDataState,
-  LocalHoldingDraft,
-  PendingHoldingInput,
-  PendingSipInput,
-  PendingWatchlistSelection,
-  SipCadenceInput,
-  SipWeekdayInput,
-  WatchlistGroup,
-} from '../../../common/appTypes'
+import type { AppDataState, PendingHoldingInput, PendingSipInput, PendingWatchlistSelection, SipCadenceInput, SipWeekdayInput, WatchlistGroup } from '../../../common/appTypes'
+import { workspaceApi } from '../../../common/data/workspaceApi'
 import { createDefaultWorkspaceInputs } from '../../../common/workspace/state'
-import { findHoldingTarget, mergeHoldingDraftsIntoPortfolios } from '../../../common/utils/holdings'
 
 type CreateHoldingActionsOptions = {
   getData: () => AppDataState
-  getLocalHoldingDrafts: () => LocalHoldingDraft[]
   getPendingHoldingAmount: () => string
   getPendingHoldingInput: () => PendingHoldingInput | null
   getPendingHoldingPnl: () => string
+  getSelectedFundHoldingInsight: () => HoldingInsight | null
+  refreshCurrentPage: (preferredFundCode?: string) => Promise<void>
   setActionMessage: Dispatch<SetStateAction<string | null>>
   setData: Dispatch<SetStateAction<AppDataState>>
-  setFundDetailCache: Dispatch<SetStateAction<Record<string, FundDetail>>>
-  setFundSuggestions: Dispatch<SetStateAction<FundCard[]>>
-  setLocalHoldingDrafts: Dispatch<SetStateAction<LocalHoldingDraft[]>>
   setPendingHoldingAmount: Dispatch<SetStateAction<string>>
   setPendingHoldingInput: Dispatch<SetStateAction<PendingHoldingInput | null>>
   setPendingHoldingPnl: Dispatch<SetStateAction<string>>
@@ -39,15 +28,13 @@ type CreateHoldingActionsOptions = {
 
 export function createHoldingActions({
   getData,
-  getLocalHoldingDrafts,
   getPendingHoldingAmount,
   getPendingHoldingInput,
   getPendingHoldingPnl,
+  getSelectedFundHoldingInsight,
+  refreshCurrentPage,
   setActionMessage,
   setData,
-  setFundDetailCache,
-  setFundSuggestions,
-  setLocalHoldingDrafts,
   setPendingHoldingAmount,
   setPendingHoldingInput,
   setPendingHoldingPnl,
@@ -59,10 +46,6 @@ export function createHoldingActions({
   setPendingWatchlistGroups,
   setPendingWatchlistSelection,
 }: CreateHoldingActionsOptions) {
-  function mergeLocalHoldingDrafts(portfolios: PortfolioSummary[] | null) {
-    return mergeHoldingDraftsIntoPortfolios(portfolios, getLocalHoldingDrafts())
-  }
-
   function formatHoldingFieldValue(value: number) {
     return Number.isFinite(value) ? String(Number(value.toFixed(2))) : ''
   }
@@ -76,28 +59,23 @@ export function createHoldingActions({
     setPendingSipWeekday(defaults.sipWeekday)
     setPendingSipMonthDay(defaults.sipMonthDay)
     setPendingSipAmount(defaults.sipAmount)
-    const existingHolding = findHoldingTarget(fund.code, mergeLocalHoldingDrafts(getData().portfolios))
+    const existingHolding = getSelectedFundHoldingInsight()
     if (mode === 'edit' && !existingHolding) {
       setActionMessage(`${fund.name} 当前还没有持仓可修改`)
       return
     }
     setPendingHoldingInput({ code: fund.code, name: fund.name, mode })
-    setPendingHoldingAmount(mode === 'edit' && existingHolding ? formatHoldingFieldValue(existingHolding.holding.currentValue) : '')
-    setPendingHoldingPnl(mode === 'edit' && existingHolding ? formatHoldingFieldValue(existingHolding.holding.pnl) : '')
+    setPendingHoldingAmount(mode === 'edit' && existingHolding ? formatHoldingFieldValue(existingHolding.amountHeld) : '')
+    setPendingHoldingPnl(mode === 'edit' && existingHolding ? formatHoldingFieldValue(existingHolding.holdingPnl) : '')
   }
 
-  function confirmAddHolding() {
+  async function confirmAddHolding() {
     const pending = getPendingHoldingInput()
     const selectedFund = getData().selectedFund
-    const portfolios = getData().portfolios
     const amount = Number(getPendingHoldingAmount())
     const pnl = Number(getPendingHoldingPnl())
 
     if (!pending || !selectedFund) return
-    if (!portfolios?.length) {
-      setActionMessage(`当前没有可用组合，暂时无法${pending.mode === 'edit' ? '修改' : '加入'}持仓`)
-      return
-    }
     if (!Number.isFinite(amount) || amount <= 0) {
       setActionMessage('持有金额必须大于 0')
       return
@@ -119,50 +97,49 @@ export function createHoldingActions({
       return
     }
 
-    const shares = Number((amount / currentPrice).toFixed(4))
-    const averageCost = Number((costBasis / shares).toFixed(4))
-    const updatedAt = new Date().toISOString()
-    const effectivePortfolios = mergeLocalHoldingDrafts(portfolios)
-    const existingHolding = findHoldingTarget(pending.code, effectivePortfolios)
-    const targetPortfolio = portfolios.find((portfolio) => portfolio.id === existingHolding?.portfolioId) ?? portfolios[0]
-    const newHolding: HoldingLot = {
-      id: existingHolding?.holding.id ?? `manual-${pending.code}-${Date.now()}`,
-      fundCode: pending.code,
-      fundName: pending.name,
-      shares,
-      averageCost,
-      currentValue: Number(amount.toFixed(4)),
-      pnl: Number(pnl.toFixed(4)),
-      allocation: 0,
-      source: existingHolding?.holding.source ?? 'manual',
-      updatedAt,
-    }
-
-    setLocalHoldingDrafts((current) => [
-      { ...newHolding, portfolioId: targetPortfolio.id },
-      ...current.filter((draft) => !(draft.portfolioId === targetPortfolio.id && draft.fundCode === pending.code)),
-    ])
-    setData((current) => ({
-      ...current,
-      funds: current.funds?.map((item) => (item.code === pending.code ? { ...item, held: true } : item)) ?? null,
-      selectedFund: current.selectedFund?.code === pending.code ? { ...current.selectedFund, held: true } : current.selectedFund,
-    }))
-    setFundSuggestions((current) => current.map((item) => (item.code === pending.code ? { ...item, held: true } : item)))
-    setFundDetailCache((current) => {
-      const detail = current[pending.code]
-      if (!detail) return current
-      return {
-        ...current,
-        [pending.code]: {
-          ...detail,
-          held: true,
-        },
+    try {
+      const payload = {
+        fundCode: pending.code,
+        amountBasis: selectedFund.referenceOnly ? ('T' as const) : ('T_MINUS_1' as const),
+        amount,
+        holdingPnl: pnl,
       }
-    })
-    setPendingHoldingInput(null)
-    setPendingHoldingAmount('')
-    setPendingHoldingPnl('')
-    setActionMessage(pending.mode === 'edit' ? `已更新 ${pending.name} 的持仓` : `已将 ${pending.name} 加入持仓`)
+
+      if (pending.mode === 'edit') {
+        await workspaceApi.updateHolding(pending.code, payload)
+      } else {
+        await workspaceApi.createHolding(payload)
+        const executedAt = new Date().toISOString()
+        setData((current) => ({
+          ...current,
+          localHoldingHistory: [
+            {
+              id: `holding-build-${pending.code}-${Date.now()}`,
+              fundCode: pending.code,
+              fundName: pending.name,
+              historyType: 'BUILD',
+              amount: Number(amount.toFixed(2)),
+              shares: Number((amount / currentPrice).toFixed(4)),
+              fee: 0,
+              feeRate: 0,
+              status: '已执行',
+              tradeDate: executedAt.slice(0, 10),
+              executedAt,
+              source: 'HOLDING_SNAPSHOT',
+            },
+            ...current.localHoldingHistory,
+          ],
+        }))
+      }
+
+      setPendingHoldingInput(null)
+      setPendingHoldingAmount('')
+      setPendingHoldingPnl('')
+      setActionMessage(pending.mode === 'edit' ? `已更新 ${pending.name} 的持仓` : `已将 ${pending.name} 加入持仓`)
+      await refreshCurrentPage(pending.code)
+    } catch (error) {
+      setActionMessage(error instanceof Error ? error.message : `${pending.mode === 'edit' ? '修改' : '新增'}持仓失败`)
+    }
   }
 
   return {

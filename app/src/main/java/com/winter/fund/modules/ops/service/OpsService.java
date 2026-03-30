@@ -1,5 +1,9 @@
 package com.winter.fund.modules.ops.service;
 
+/**
+ * 运维模块服务，负责封装该模块的核心业务逻辑。
+ */
+
 import com.winter.fund.modules.ops.model.FeatureFlagEntity;
 import com.winter.fund.modules.ops.model.OpsDtos;
 import com.winter.fund.modules.ops.repository.FeatureFlagRepository;
@@ -52,6 +56,7 @@ public class OpsService {
             .orElseThrow(() -> new NotFoundException("Feature flag not found"));
         flag.setEnabled(enabled);
         featureFlagRepository.save(flag);
+        log.info("Feature flag persisted, code={}, enabled={}", flag.getCode(), flag.isEnabled());
         return new OpsDtos.FeatureFlagResponse(
             flag.getCode(),
             flag.getName(),

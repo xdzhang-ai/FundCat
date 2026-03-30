@@ -1,5 +1,9 @@
 package com.winter.fund.modules.dashboard.service;
 
+/**
+ * 仪表盘模块服务，负责封装该模块的核心业务逻辑。
+ */
+
 import com.winter.fund.modules.dashboard.model.DashboardDtos;
 import com.winter.fund.modules.auth.service.AuthService;
 import com.winter.fund.modules.auth.model.CurrentUser;

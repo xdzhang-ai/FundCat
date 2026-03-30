@@ -62,6 +62,14 @@ export function createWatchlistActions({
   setPendingWatchlistSelection,
   setWatchlistGroups,
 }: CreateWatchlistActionsOptions) {
+  function hydrateWatchlistGroups(watchlist: AppDataState['watchlist']): Record<string, WatchlistGroup[]> {
+    return Object.fromEntries((watchlist ?? []).map((item) => [item.code, item.groups?.length ? item.groups : ['全部']]))
+  }
+
+  function normalizePersistedGroups(groups: WatchlistGroup[]) {
+    return groups.filter((group) => group !== '全部')
+  }
+
   function openWatchlistPicker(fund: Pick<FundCard, 'code' | 'name' | 'watchlisted'>) {
     if (fund.watchlisted) {
       setActionMessage(`${fund.name} 已在自选基金中`)
@@ -96,13 +104,27 @@ export function createWatchlistActions({
   }
 
   function assignWatchlistGroup(codes: string[], group: Exclude<WatchlistGroup, '全部'>) {
-    setWatchlistGroups((current) => {
-      const next = { ...current }
-      codes.forEach((code) => {
-        next[code] = ['全部', group]
-      })
-      return next
+    if (codes.length === 0) return
+    const currentWatchlist = getData().watchlist ?? []
+    const hasActualChange = codes.some((code) => {
+      const currentGroups = currentWatchlist.find((item) => item.code === code)?.groups ?? []
+      return currentGroups.length !== 1 || currentGroups[0] !== group
     })
+    if (!hasActualChange) {
+      return
+    }
+    void workspaceApi
+      .updateWatchlistGroups({
+        fundCodes: codes,
+        groups: [group],
+      })
+      .then((watchlist) => {
+        setData((current) => ({ ...current, watchlist }))
+        setWatchlistGroups(hydrateWatchlistGroups(watchlist))
+      })
+      .catch((error) => {
+        setActionMessage(error instanceof Error ? error.message : '更新自选分组失败')
+      })
   }
 
   async function confirmAddWatchlist() {
@@ -114,13 +136,10 @@ export function createWatchlistActions({
       await workspaceApi.addWatchlist({
         fundCode: pending.code,
         note,
+        groups: normalizePersistedGroups(getPendingWatchlistGroups()),
       })
 
       setActionMessage(`已将 ${pending.name} 加入自选`)
-      setWatchlistGroups((current) => ({
-        ...current,
-        [pending.code]: getPendingWatchlistGroups().length > 0 ? getPendingWatchlistGroups() : ['全部'],
-      }))
       setFundSuggestions((current) => current.map((item) => (item.code === pending.code ? { ...item, watchlisted: true } : item)))
       setFundDetailCache((current) => {
         const detail = current[pending.code]
@@ -139,10 +158,9 @@ export function createWatchlistActions({
         selectedFund: current.selectedFund?.code === pending.code ? { ...current.selectedFund, watchlisted: true } : current.selectedFund,
       }))
 
-      if (getData().watchlist) {
-        const watchlist = await workspaceApi.watchlist()
-        setData((current) => ({ ...current, watchlist }))
-      }
+      const watchlist = await workspaceApi.watchlist()
+      setData((current) => ({ ...current, watchlist }))
+      setWatchlistGroups(hydrateWatchlistGroups(watchlist))
       setPendingWatchlistSelection(null)
       setPendingWatchlistGroups(createDefaultWorkspaceInputs().watchlistGroups)
     } catch (error) {
@@ -158,12 +176,6 @@ export function createWatchlistActions({
     try {
       await workspaceApi.removeWatchlist(code)
       setActionMessage(`已将 ${code} 移出自选`)
-      setWatchlistGroups((current) => {
-        if (!(code in current)) return current
-        const next = { ...current }
-        delete next[code]
-        return next
-      })
       await refreshCurrentPage(getSelectedCode() || code)
     } catch (error) {
       setActionMessage(error instanceof Error ? error.message : '移出自选失败')

@@ -4,7 +4,7 @@ set -eu
 
 ROOT_DIR=$(CDPATH= cd -- "$(dirname "$0")/.." && pwd)
 API_DIR="$ROOT_DIR/app"
-MODE="${1:-h2}"
+MODE="${1:-mysql}"
 
 if [ -f "$ROOT_DIR/.env" ]; then
   set -a
@@ -50,7 +50,7 @@ case "$MODE" in
     exec mvn spring-boot:run -Dspring-boot.run.profiles=mysql
     ;;
   *)
-    echo "Usage: sh ./scripts/run-api.sh [h2|redis|mysql]" >&2
+    echo "Usage: sh ./scripts/run-api.sh [mysql|redis|h2]" >&2
     exit 1
     ;;
 esac
