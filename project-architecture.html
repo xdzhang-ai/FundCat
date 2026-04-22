@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>FundCat 项目架构图</title>
+    <style>
+      :root {
+        --bg: #f5f8fc;
+        --panel: rgba(255, 255, 255, 0.9);
+        --line: #d9e3ee;
+        --text: #132238;
+        --muted: #5d7186;
+        --blue: #2f80ed;
+        --green: #2f9e5b;
+        --purple: #6d5bd0;
+        --orange: #d97706;
+        --red: #d94841;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: "SF Pro Text", "PingFang SC", "Microsoft YaHei", sans-serif;
+        background:
+          radial-gradient(circle at top left, #ffffff 0%, #eef4ff 25%, transparent 42%),
+          linear-gradient(180deg, #f8fbff 0%, #f3f8f4 100%);
+        color: var(--text);
+      }
+
+      .page {
+        width: min(1800px, calc(100vw - 32px));
+        margin: 22px auto 40px;
+      }
+
+      h1 {
+        margin: 0 0 8px;
+        font-size: 38px;
+        font-weight: 800;
+        letter-spacing: -0.03em;
+      }
+
+      .sub {
+        margin: 0 0 20px;
+        color: var(--muted);
+        font-size: 16px;
+        line-height: 1.75;
+      }
+
+      .section {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 26px;
+        box-shadow: 0 20px 44px rgba(15, 23, 42, 0.08);
+        padding: 20px;
+      }
+
+      .section + .section {
+        margin-top: 18px;
+      }
+
+      .section-title {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin: 0 0 14px;
+        font-size: 24px;
+        font-weight: 800;
+      }
+
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 34px;
+        height: 34px;
+        border-radius: 12px;
+        font-size: 18px;
+        background: #eef5ff;
+      }
+
+      svg {
+        width: 100%;
+        height: auto;
+        display: block;
+      }
+
+      .legend {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px 18px;
+        margin-top: 14px;
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .legend-item {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .dot {
+        width: 11px;
+        height: 11px;
+        border-radius: 50%;
+      }
+
+      .details-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 16px;
+      }
+
+      .detail-card {
+        background: rgba(255, 255, 255, 0.95);
+        border: 1px solid var(--line);
+        border-radius: 22px;
+        padding: 18px 18px 16px;
+        min-height: 260px;
+      }
+
+      .detail-card h3 {
+        margin: 0 0 10px;
+        font-size: 21px;
+      }
+
+      .detail-card p {
+        margin: 0 0 12px;
+        color: var(--muted);
+        line-height: 1.7;
+        font-size: 14px;
+      }
+
+      .pill-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin: 10px 0 14px;
+      }
+
+      .pill {
+        padding: 9px 14px;
+        border-radius: 999px;
+        border: 1px solid #dbe6f1;
+        background: #fff;
+        font-size: 13px;
+        font-weight: 700;
+        color: #28405b;
+      }
+
+      .flow {
+        display: grid;
+        gap: 10px;
+      }
+
+      .flow-step {
+        border-radius: 16px;
+        padding: 12px 14px;
+        background: #f8fbff;
+        border: 1px solid #dbe7f4;
+      }
+
+      .flow-step strong {
+        display: block;
+        margin-bottom: 4px;
+        font-size: 14px;
+      }
+
+      .flow-step span {
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.6;
+      }
+
+      .todo-card {
+        background: linear-gradient(180deg, #fff9f8 0%, #fff1ed 100%);
+        border-color: #f0cbc1;
+      }
+
+      .todo-card h3 {
+        color: #a53b31;
+      }
+
+      .todo-list {
+        margin: 0;
+        padding-left: 18px;
+        color: #8a4a43;
+        line-height: 1.8;
+        font-size: 14px;
+      }
+
+      @media (max-width: 1100px) {
+        .details-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <h1>FundCat 后端系统架构图</h1>
+      <p class="sub">
+        先给总体架构，再展开局部细节。上面这张图只保留主模块与主流向，下面再分别解释 Java 业务层、Python 数据侧、缓存链路和待补齐部分。
+      </p>
+
+      <section class="section">
+        <h2 class="section-title"><span class="badge">🧭</span>总体架构</h2>
+        <svg viewBox="0 0 1700 820" xmlns="http://www.w3.org/2000/svg" aria-label="FundCat overall architecture">
+          <defs>
+            <linearGradient id="layerUser" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#f4fff7"/>
+              <stop offset="100%" stop-color="#e9f8ef"/>
+            </linearGradient>
+            <linearGradient id="layerAccess" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#f5faff"/>
+              <stop offset="100%" stop-color="#eaf2ff"/>
+            </linearGradient>
+            <linearGradient id="layerApp" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#faf8ff"/>
+              <stop offset="100%" stop-color="#f0ecff"/>
+            </linearGradient>
+            <linearGradient id="layerBase" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#fffaf0"/>
+              <stop offset="100%" stop-color="#fff0d7"/>
+            </linearGradient>
+            <linearGradient id="layerData" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#f6fbff"/>
+              <stop offset="100%" stop-color="#eaf3ff"/>
+            </linearGradient>
+            <linearGradient id="layerTodo" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#fff8f6"/>
+              <stop offset="100%" stop-color="#ffe9e3"/>
+            </linearGradient>
+            <marker id="arrow" markerWidth="12" markerHeight="12" refX="11" refY="6" orient="auto">
+              <path d="M1 1L11 6L1 11" fill="none" stroke="#6c7f95" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </marker>
+            <style>
+              .layerLabel { font: 700 18px 'SF Pro Text', 'PingFang SC', sans-serif; }
+              .boxTitle { font: 700 22px 'SF Pro Display', 'PingFang SC', sans-serif; fill: #15283e; }
+              .boxText { font: 500 14px 'SF Pro Text', 'PingFang SC', sans-serif; fill: #5a6e84; }
+              .chipText { font: 700 14px 'SF Pro Text', 'PingFang SC', sans-serif; fill: #2a4058; }
+              .todoTitle { font: 700 19px 'SF Pro Display', 'PingFang SC', sans-serif; fill: #a43d33; }
+              .todoText { font: 500 14px 'SF Pro Text', 'PingFang SC', sans-serif; fill: #8b4a42; }
+            </style>
+          </defs>
+
+          <rect x="8" y="44" width="140" height="96" rx="18" fill="url(#layerUser)" stroke="#cde4d4"/>
+          <text x="78" y="100" text-anchor="middle" class="layerLabel" fill="#2f9e5b">用户层</text>
+
+          <rect x="8" y="164" width="140" height="110" rx="18" fill="url(#layerAccess)" stroke="#d4e2f5"/>
+          <text x="78" y="226" text-anchor="middle" class="layerLabel" fill="#2f80ed">接入层</text>
+
+          <rect x="8" y="300" width="140" height="198" rx="18" fill="url(#layerApp)" stroke="#ddd8f7"/>
+          <text x="78" y="404" text-anchor="middle" class="layerLabel" fill="#6d5bd0">应用层</text>
+
+          <rect x="8" y="524" width="140" height="140" rx="18" fill="url(#layerBase)" stroke="#f0d9a8"/>
+          <text x="78" y="600" text-anchor="middle" class="layerLabel" fill="#d97706">基础服务层</text>
+
+          <rect x="8" y="690" width="140" height="126" rx="18" fill="url(#layerData)" stroke="#d9e7f6"/>
+          <text x="78" y="760" text-anchor="middle" class="layerLabel" fill="#2563eb">数据层</text>
+
+          <rect x="1180" y="690" width="480" height="108" rx="18" fill="url(#layerTodo)" stroke="#f0cbc1"/>
+          <text x="1204" y="728" class="todoTitle">待补齐部分</text>
+          <text x="1204" y="758" class="todoText">RocketMQ 真 broker、Airflow DAG、实时估值驱动刷新仍未接通。</text>
+          <text x="1204" y="783" class="todoText">但消息模型、ops API、Redis 预热和 bridge 已经预留。</text>
+
+          <rect x="170" y="44" width="660" height="96" rx="20" fill="#fff" stroke="#dce6f0"/>
+          <text x="198" y="82" class="boxTitle">用户工作台</text>
+          <rect x="198" y="100" width="150" height="34" rx="12" fill="#ffffff" stroke="#dbe5ef"/>
+          <rect x="364" y="100" width="150" height="34" rx="12" fill="#ffffff" stroke="#dbe5ef"/>
+          <rect x="530" y="100" width="120" height="34" rx="12" fill="#ffffff" stroke="#dbe5ef"/>
+          <rect x="666" y="100" width="130" height="34" rx="12" fill="#ffffff" stroke="#dbe5ef"/>
+          <text x="273" y="122" text-anchor="middle" class="chipText">Web Workspace</text>
+          <text x="439" y="122" text-anchor="middle" class="chipText">Admin Console</text>
+          <text x="590" y="122" text-anchor="middle" class="chipText">基金详情</text>
+          <text x="731" y="122" text-anchor="middle" class="chipText">持仓 / 定投 / 自选</text>
+
+          <rect x="860" y="44" width="520" height="96" rx="20" fill="#fff" stroke="#dce6f0"/>
+          <text x="888" y="82" class="boxTitle">接入与统一响应</text>
+          <text x="888" y="114" class="boxText">统一入口、统一鉴权、统一响应；内部再分发到 MySQL、Redis 与 Python bridge。</text>
+
+          <line x1="830" y1="92" x2="860" y2="92" stroke="#6c7f95" stroke-width="2.6" marker-end="url(#arrow)"/>
+          <line x1="500" y1="140" x2="500" y2="164" stroke="#6c7f95" stroke-width="2.6" marker-end="url(#arrow)"/>
+
+          <rect x="170" y="164" width="1210" height="102" rx="20" fill="#fff" stroke="#dce6f0"/>
+          <text x="198" y="204" class="boxTitle">Java API 网关入口</text>
+          <text x="198" y="236" class="boxText">Auth、Fund、Holding、Sip、Watchlist、Overview、Ops 统一对外暴露。</text>
+
+          <line x1="776" y1="266" x2="776" y2="300" stroke="#6c7f95" stroke-width="2.6" marker-end="url(#arrow)"/>
+
+          <rect x="170" y="300" width="520" height="198" rx="20" fill="#fffaf1" stroke="#ead7aa"/>
+          <text x="198" y="340" class="boxTitle">Java 业务层</text>
+          <text x="198" y="372" class="boxText">确认手工买卖、确认定投、聚合受影响基金、统一回算持仓。</text>
+          <rect x="198" y="396" width="110" height="34" rx="12" fill="#fff" stroke="#eadfca"/>
+          <rect x="322" y="396" width="110" height="34" rx="12" fill="#fff" stroke="#eadfca"/>
+          <rect x="446" y="396" width="110" height="34" rx="12" fill="#fff" stroke="#eadfca"/>
+          <rect x="570" y="396" width="92" height="34" rx="12" fill="#fff" stroke="#eadfca"/>
+          <text x="253" y="418" text-anchor="middle" class="chipText">fund</text>
+          <text x="377" y="418" text-anchor="middle" class="chipText">holding</text>
+          <text x="501" y="418" text-anchor="middle" class="chipText">watchlist</text>
+          <text x="616" y="418" text-anchor="middle" class="chipText">sip</text>
+          <rect x="198" y="442" width="110" height="34" rx="12" fill="#fff" stroke="#eadfca"/>
+          <rect x="322" y="442" width="110" height="34" rx="12" fill="#fff" stroke="#eadfca"/>
+          <rect x="446" y="442" width="110" height="34" rx="12" fill="#fff" stroke="#eadfca"/>
+          <text x="253" y="464" text-anchor="middle" class="chipText">overview</text>
+          <text x="377" y="464" text-anchor="middle" class="chipText">ops</text>
+          <text x="501" y="464" text-anchor="middle" class="chipText">auth</text>
+
+          <rect x="720" y="300" width="340" height="198" rx="20" fill="#f8fbff" stroke="#d8e5f5"/>
+          <text x="748" y="340" class="boxTitle">Python 数据服务</text>
+          <text x="748" y="372" class="boxText">抓 AKShare、生成 pending 集合、晚间轮询、补偿前一交易日、写 outbox。</text>
+          <rect x="748" y="406" width="124" height="34" rx="12" fill="#fff" stroke="#dbe5ef"/>
+          <rect x="886" y="406" width="124" height="34" rx="12" fill="#fff" stroke="#dbe5ef"/>
+          <text x="810" y="428" text-anchor="middle" class="chipText">ops API</text>
+          <text x="948" y="428" text-anchor="middle" class="chipText">bridge API</text>
+
+          <rect x="1090" y="300" width="290" height="198" rx="20" fill="#fffaf1" stroke="#ead7aa"/>
+          <text x="1118" y="340" class="boxTitle">主业务流向</text>
+          <text x="1118" y="372" class="boxText">ready 消息 → Java 确认 pending → 按基金聚合 → rebuildSnapshotsFrom</text>
+          <text x="1118" y="406" class="boxText">长历史请求 → Java 回源 Python bridge</text>
+
+          <line x1="690" y1="399" x2="720" y2="399" stroke="#6c7f95" stroke-width="2.6" marker-end="url(#arrow)"/>
+          <line x1="1060" y1="399" x2="1090" y2="399" stroke="#6c7f95" stroke-width="2.6" marker-end="url(#arrow)"/>
+          <line x1="776" y1="498" x2="776" y2="524" stroke="#6c7f95" stroke-width="2.6" marker-end="url(#arrow)"/>
+
+          <rect x="170" y="524" width="320" height="140" rx="20" fill="#fffdf8" stroke="#eadfca"/>
+          <text x="198" y="564" class="boxTitle">认证与调度</text>
+          <text x="198" y="596" class="boxText">Java 只保留 15:00 定投快照和 09:00 Redis 预热两个稳定业务 Job。</text>
+
+          <rect x="520" y="524" width="300" height="140" rx="20" fill="#fffdf8" stroke="#eadfca"/>
+          <text x="548" y="564" class="boxTitle">消息与编排</text>
+          <text x="548" y="596" class="boxText">目标链路：Python outbox 批量发 ready.batch，Java 统一消费，Airflow 负责编排。</text>
+
+          <rect x="850" y="524" width="260" height="140" rx="20" fill="#fffdf8" stroke="#eadfca"/>
+          <text x="878" y="564" class="boxTitle">日间持仓态</text>
+          <text x="878" y="596" class="boxText">白天展示走 Redis intraday state，晚间正式净值确认后删缓存，次日再重建。</text>
+
+          <line x1="490" y1="594" x2="520" y2="594" stroke="#6c7f95" stroke-width="2.6" marker-end="url(#arrow)"/>
+          <line x1="820" y1="594" x2="850" y2="594" stroke="#6c7f95" stroke-width="2.6" marker-end="url(#arrow)"/>
+          <line x1="776" y1="664" x2="776" y2="690" stroke="#6c7f95" stroke-width="2.6" marker-end="url(#arrow)"/>
+
+          <rect x="170" y="690" width="420" height="126" rx="20" fill="#f7fcff" stroke="#d9e7f6"/>
+          <text x="198" y="730" class="boxTitle">MySQL 业务事实</text>
+          <text x="198" y="762" class="boxText">保存操作记录、日终快照、定投、自选等业务事实，latest 冗余表已删除。</text>
+
+          <rect x="620" y="690" width="520" height="126" rx="20" fill="#f7fcff" stroke="#d9e7f6"/>
+          <text x="648" y="730" class="boxTitle">基金市场数据与缓存</text>
+          <text x="648" y="762" class="boxText">funds、近 30 天净值、outbox、任务记录和 pending 中间表都在这里。</text>
+
+          <rect x="1170" y="524" width="210" height="140" rx="20" fill="#f7fcff" stroke="#d9e7f6"/>
+          <text x="1198" y="564" class="boxTitle">外部数据源</text>
+          <text x="1198" y="596" class="boxText">Python 统一与 AKShare 交互，Java 不再直连外部基金数据源。</text>
+
+          <line x1="1140" y1="753" x2="1170" y2="753" stroke="#6c7f95" stroke-width="2.6" marker-end="url(#arrow)"/>
+        </svg>
+
+        <div class="legend">
+          <span class="legend-item"><span class="dot" style="background:#2f9e5b"></span>用户与接入</span>
+          <span class="legend-item"><span class="dot" style="background:#6d5bd0"></span>Java 业务层</span>
+          <span class="legend-item"><span class="dot" style="background:#2f80ed"></span>数据与缓存</span>
+          <span class="legend-item"><span class="dot" style="background:#d94841"></span>未实现或未闭环部分</span>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2 class="section-title"><span class="badge">🔍</span>局部展开</h2>
+        <div class="details-grid">
+          <article class="detail-card">
+            <h3>Java 业务层</h3>
+            <p>Java 现在的职责已经收得比较清楚：不再自己轮询基金净值，而是专注做业务确认、持仓回算、对前端聚合输出。</p>
+            <div class="pill-row">
+              <span class="pill">fund</span>
+              <span class="pill">holding</span>
+              <span class="pill">sip</span>
+              <span class="pill">watchlist</span>
+              <span class="pill">overview</span>
+              <span class="pill">ops</span>
+            </div>
+            <div class="flow">
+              <div class="flow-step">
+                <strong>前端请求进入 Java API</strong>
+                <span>统一鉴权、统一响应格式、统一屏蔽底层是 MySQL、Redis 还是 Python bridge。</span>
+              </div>
+              <div class="flow-step">
+                <strong>消费基金 ready 消息</strong>
+                <span>先确认 pending 的手工买卖和定投记录，再按基金聚合，避免重复回算。</span>
+              </div>
+              <div class="flow-step">
+                <strong>统一回算持仓</strong>
+                <span>最终仍通过 rebuildSnapshotsFrom 落到日终快照，并刷新或清理当前态缓存。</span>
+              </div>
+            </div>
+          </article>
+
+          <article class="detail-card">
+            <h3>Python 数据侧</h3>
+            <p>Python 现在是基金市场数据的唯一采集入口。它负责抓 AKShare、补偿晚到净值、写 outbox，并且给 30 天外历史走势提供 bridge。</p>
+            <div class="pill-row">
+              <span class="pill">sync-basics</span>
+              <span class="pill">nav/seed</span>
+              <span class="pill">poll-evening</span>
+              <span class="pill">poll-retry</span>
+              <span class="pill">outbox/publish</span>
+              <span class="pill">cleanup</span>
+            </div>
+            <div class="flow">
+              <div class="flow-step">
+                <strong>09:00 seed</strong>
+                <span>从 funds 生成当天待抓基金集合，写入 fund_nav_pending_keys，不往净值事实表里插空值占位。</span>
+              </div>
+              <div class="flow-step">
+                <strong>18:15 起轮询净值</strong>
+                <span>晚间每 2 小时轮询一次当天未完成基金；次日 07:30 和 09:00 继续补偿前一交易日没拿到的净值。</span>
+              </div>
+              <div class="flow-step">
+                <strong>成功后写库并发消息</strong>
+                <span>upsert fund_nav_history / growth，再写 outbox，最终批量发 fund.nav.ready.batch。</span>
+              </div>
+            </div>
+          </article>
+
+          <article class="detail-card">
+            <h3>数据层与日间动态态</h3>
+            <p>MySQL 负责正式事实，Redis 负责白天展示态。现在已经不是“latest 表直读”，而是“日终结果 + 日间缓存”的组合。</p>
+            <div class="pill-row">
+              <span class="pill">holding_daily_snapshots</span>
+              <span class="pill">holding_operation_records</span>
+              <span class="pill">fund_nav_history (30天)</span>
+              <span class="pill">fund_nav_growth (30天)</span>
+              <span class="pill">Redis intraday state</span>
+            </div>
+            <div class="flow">
+              <div class="flow-step">
+                <strong>09:00 预热 Redis</strong>
+                <span>把用户前一日持仓快照加载到 Redis，作为当天 intraday state 的基线。</span>
+              </div>
+              <div class="flow-step">
+                <strong>白天读取优先走 Redis</strong>
+                <span>前端展示先读 Redis 日间态；后续如果接入实时估值，就在这里更新 currentNav 和盈亏。</span>
+              </div>
+              <div class="flow-step">
+                <strong>晚间正式净值确认后清缓存</strong>
+                <span>当某基金完成 handleConfirmedNav，Redis 对应 intraday state 删除，次日重新以正式快照为基线加载。</span>
+              </div>
+            </div>
+          </article>
+
+          <article class="detail-card todo-card">
+            <h3>还没实现的部分</h3>
+            <p>这几块已经在结构里预留了入口，但还没有真正跑成生产链路。</p>
+            <ul class="todo-list">
+              <li>RocketMQ 仍是消息模型和消费入口已就位，但 Python publisher 还是 log 模式，没有真正接 broker。</li>
+              <li>Airflow DAG 还没写成正式调度文件，当前只有 ops API 和任务步骤说明。</li>
+              <li>实时估值驱动的 intraday 刷新还没闭环，EstimatePollingJob 目前只是估值轮询入口。</li>
+              <li>Python 的 .env 还没有自动加载，本地运行仍主要依赖 Run Configuration 或 export 环境变量。</li>
+            </ul>
+          </article>
+        </div>
+      </section>
+    </div>
+  </body>
+</html>

@@ -23,11 +23,23 @@ python3 -m pip install -r requirements.txt
 
 ## 启动服务
 
+服务启动时会自动读取当前目录下的 `.env`，显式环境变量会优先覆盖 `.env` 中的同名值。
+
 ```bash
 cd /Users/winter/zxd/projects/CodexApps/FundCat/fund-data-service
 source .venv/bin/activate
 uvicorn main:app --host 127.0.0.1 --port 8000 --reload
 ```
+
+## 环境变量
+
+默认会自动加载 [`.env`](/Users/winter/zxd/projects/CodexApps/FundCat/fund-data-service/.env)，当前主要用到：
+
+- `FUNDCAT_DB_URL`
+- `FUNDCAT_OPS_BASE_URL`
+- `FUNDCAT_PUBLISH_MODE`
+- `FUNDCAT_OUTBOX_BATCH_SIZE`
+- `FUNDCAT_PENDING_QUERY_LIMIT`
 
 ## 可用接口
 
