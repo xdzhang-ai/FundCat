@@ -11,17 +11,19 @@ type Props = Pick<
   | 'onBack'
   | 'onQuickAction'
   | 'watchlistPickerOpen'
-  | 'watchlistPickerGroups'
+  | 'watchlistPickerGroup'
   | 'watchlistGroupOptions'
-  | 'onToggleWatchlistGroup'
+  | 'onSelectWatchlistGroup'
   | 'onCancelWatchlistPicker'
   | 'onConfirmWatchlistPicker'
   | 'holdingInputOpen'
   | 'holdingFormMode'
   | 'holdingAmount'
   | 'holdingPnl'
+  | 'holdingAmountBasis'
   | 'onHoldingAmountChange'
   | 'onHoldingPnlChange'
+  | 'onHoldingAmountBasisChange'
   | 'onCancelHoldingInput'
   | 'onConfirmHoldingInput'
   | 'holdingOperationInputOpen'
@@ -29,13 +31,13 @@ type Props = Pick<
   | 'holdingOperationAmount'
   | 'holdingOperationFeeRate'
   | 'holdingOperationShares'
-  | 'holdingOperationTiming'
   | 'holdingOperationTradeDate'
+  | 'holdingOperationTiming'
   | 'onHoldingOperationAmountChange'
   | 'onHoldingOperationFeeRateChange'
   | 'onHoldingOperationSharesChange'
-  | 'onHoldingOperationTimingChange'
   | 'onHoldingOperationTradeDateChange'
+  | 'onHoldingOperationTimingChange'
   | 'onCancelHoldingOperation'
   | 'onConfirmHoldingOperation'
   | 'sipPlanExists'
@@ -60,17 +62,19 @@ export function FundDetailActionBar(props: Props) {
     onBack,
     onQuickAction,
     watchlistPickerOpen,
-    watchlistPickerGroups,
+    watchlistPickerGroup,
     watchlistGroupOptions,
-    onToggleWatchlistGroup,
+    onSelectWatchlistGroup,
     onCancelWatchlistPicker,
     onConfirmWatchlistPicker,
     holdingInputOpen,
     holdingFormMode,
     holdingAmount,
     holdingPnl,
+    holdingAmountBasis,
     onHoldingAmountChange,
     onHoldingPnlChange,
+    onHoldingAmountBasisChange,
     onCancelHoldingInput,
     onConfirmHoldingInput,
     holdingOperationInputOpen,
@@ -78,13 +82,13 @@ export function FundDetailActionBar(props: Props) {
     holdingOperationAmount,
     holdingOperationFeeRate,
     holdingOperationShares,
-    holdingOperationTiming,
     holdingOperationTradeDate,
+    holdingOperationTiming,
     onHoldingOperationAmountChange,
     onHoldingOperationFeeRateChange,
     onHoldingOperationSharesChange,
-    onHoldingOperationTimingChange,
     onHoldingOperationTradeDateChange,
+    onHoldingOperationTimingChange,
     onCancelHoldingOperation,
     onConfirmHoldingOperation,
     sipPlanExists,
@@ -114,6 +118,7 @@ export function FundDetailActionBar(props: Props) {
       </button>
       <div className="relative">
         <button
+          data-testid="watchlist-action-button"
           type="button"
           disabled={selectedFund.watchlisted}
           onClick={() => onQuickAction('watchlist')}
@@ -129,9 +134,9 @@ export function FundDetailActionBar(props: Props) {
         {watchlistPickerOpen ? (
           <WatchlistPicker
             fundName={selectedFund.name}
-            groups={watchlistPickerGroups}
+            group={watchlistPickerGroup}
             options={watchlistGroupOptions}
-            onToggle={onToggleWatchlistGroup}
+            onSelect={onSelectWatchlistGroup}
             onCancel={onCancelWatchlistPicker}
             onConfirm={onConfirmWatchlistPicker}
           />
@@ -140,6 +145,7 @@ export function FundDetailActionBar(props: Props) {
       <div className="relative">
         {selectedFund.held ? (
           <button
+            data-testid="holding-status-button"
             type="button"
             onClick={onJumpToHoldings}
             className="inline-flex items-center gap-2 rounded-full border border-emerald-300/30 bg-emerald-400/12 px-4 py-2 text-sm text-emerald-100 transition hover:border-emerald-200/55 hover:bg-emerald-400/18"
@@ -148,7 +154,9 @@ export function FundDetailActionBar(props: Props) {
             已持仓
           </button>
         ) : (
-          <QuickActionButton icon={BriefcaseBusiness} label="加持仓" onClick={() => onQuickAction('holding')} />
+          <div data-testid="add-holding-action-button">
+            <QuickActionButton icon={BriefcaseBusiness} label="加持仓" onClick={() => onQuickAction('holding')} />
+          </div>
         )}
         {holdingInputOpen ? (
           <HoldingInputPanel
@@ -156,14 +164,17 @@ export function FundDetailActionBar(props: Props) {
             mode={holdingFormMode}
             amount={holdingAmount}
             pnl={holdingPnl}
+            amountBasis={holdingAmountBasis}
             onAmountChange={onHoldingAmountChange}
             onPnlChange={onHoldingPnlChange}
+            onAmountBasisChange={onHoldingAmountBasisChange}
             onCancel={onCancelHoldingInput}
             onConfirm={onConfirmHoldingInput}
           />
         ) : null}
       </div>
       <button
+        data-testid="edit-holding-action-button"
         type="button"
         disabled={!selectedFund.held}
         onClick={() => onQuickAction('editHolding')}
@@ -177,21 +188,23 @@ export function FundDetailActionBar(props: Props) {
         修改持仓
       </button>
       <div className="relative">
-        <QuickActionButton icon={Plus} label="买入" onClick={() => onQuickAction('buy')} />
+        <div data-testid="buy-action-button">
+          <QuickActionButton icon={Plus} label="买入" onClick={() => onQuickAction('buy')} />
+        </div>
         {holdingOperationInputOpen && holdingOperationType === 'BUY' ? (
           <HoldingOperationPanel
             fundName={selectedFund.name}
             operation={holdingOperationType}
             tradeDate={holdingOperationTradeDate}
+            timing={holdingOperationTiming}
             amount={holdingOperationAmount}
             feeRate={holdingOperationFeeRate}
             shares={holdingOperationShares}
-            timing={holdingOperationTiming}
             onTradeDateChange={onHoldingOperationTradeDateChange}
+            onTimingChange={onHoldingOperationTimingChange}
             onAmountChange={onHoldingOperationAmountChange}
             onFeeRateChange={onHoldingOperationFeeRateChange}
             onSharesChange={onHoldingOperationSharesChange}
-            onTimingChange={onHoldingOperationTimingChange}
             onCancel={onCancelHoldingOperation}
             onConfirm={onConfirmHoldingOperation}
           />
@@ -199,6 +212,7 @@ export function FundDetailActionBar(props: Props) {
       </div>
       <div className="relative">
         <button
+          data-testid="sell-action-button"
           type="button"
           disabled={!selectedFund.held}
           onClick={() => onQuickAction('sell')}
@@ -216,15 +230,15 @@ export function FundDetailActionBar(props: Props) {
             fundName={selectedFund.name}
             operation={holdingOperationType}
             tradeDate={holdingOperationTradeDate}
+            timing={holdingOperationTiming}
             amount={holdingOperationAmount}
             feeRate={holdingOperationFeeRate}
             shares={holdingOperationShares}
-            timing={holdingOperationTiming}
             onTradeDateChange={onHoldingOperationTradeDateChange}
+            onTimingChange={onHoldingOperationTimingChange}
             onAmountChange={onHoldingOperationAmountChange}
             onFeeRateChange={onHoldingOperationFeeRateChange}
             onSharesChange={onHoldingOperationSharesChange}
-            onTimingChange={onHoldingOperationTimingChange}
             onCancel={onCancelHoldingOperation}
             onConfirm={onConfirmHoldingOperation}
           />
@@ -232,6 +246,7 @@ export function FundDetailActionBar(props: Props) {
       </div>
       <div className="relative">
         <button
+          data-testid="sip-action-button"
           type="button"
           onClick={() => (sipPlanExists ? onOpenSipPlan() : onQuickAction('sip'))}
           className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm transition ${
@@ -265,43 +280,40 @@ export function FundDetailActionBar(props: Props) {
 
 function WatchlistPicker({
   fundName,
-  groups,
+  group,
   options,
-  onToggle,
+  onSelect,
   onCancel,
   onConfirm,
 }: {
   fundName: string
-  groups: WatchlistGroup[]
+  group: WatchlistGroup
   options: WatchlistGroup[]
-  onToggle: (group: WatchlistGroup) => void
+  onSelect: (group: WatchlistGroup) => void
   onCancel: () => void
   onConfirm: () => void
 }) {
   return (
-    <div className="absolute left-0 top-[calc(100%+0.6rem)] z-30 w-72 rounded-[1.25rem] border border-sky-400/20 bg-slate-950/98 p-3 shadow-[0_18px_40px_rgba(15,23,42,0.45)] backdrop-blur-xl">
+    <div data-testid="watchlist-picker" className="absolute left-0 top-[calc(100%+0.6rem)] z-30 w-72 rounded-[1.25rem] border border-sky-400/20 bg-slate-950/98 p-3 shadow-[0_18px_40px_rgba(15,23,42,0.45)] backdrop-blur-xl">
       <p className="text-xs uppercase tracking-[0.2em] text-sky-300">加入自选分组</p>
       <p className="mt-1 text-sm text-white">{fundName}</p>
-      <p className="mt-1 text-xs text-slate-400">默认勾选“全部”，最多只能勾选 2 个。</p>
+      <p className="mt-1 text-xs text-slate-400">每只基金仅保留一个用户分组。</p>
       <div className="mt-3 space-y-2">
-        {options.map((group) => {
-          const checked = groups.includes(group)
-          const disabled = group !== '全部' && !checked && groups.length >= 2
+        {options.map((option) => {
+          const checked = group === option
           return (
             <button
-              key={group}
+              data-testid={`watchlist-group-option-${option}`}
+              key={option}
               type="button"
-              disabled={disabled}
-              onClick={() => onToggle(group)}
+              onClick={() => onSelect(option)}
               className={`flex w-full items-center justify-between rounded-xl border px-3 py-2 text-sm transition ${
                 checked
                   ? 'border-sky-300/45 bg-sky-400/14 text-white'
-                  : disabled
-                    ? 'cursor-not-allowed border-white/8 bg-white/5 text-slate-500'
-                    : 'border-white/10 bg-white/5 text-slate-200 hover:border-white/20 hover:text-white'
+                  : 'border-white/10 bg-white/5 text-slate-200 hover:border-white/20 hover:text-white'
               }`}
             >
-              <span>{group}</span>
+              <span>{option}</span>
               <span className={`inline-flex h-4 w-4 items-center justify-center rounded border text-[0.72rem] ${checked ? 'border-sky-200/70 bg-sky-300/20 text-white' : 'border-white/20 text-transparent'}`}>
                 ✓
               </span>
@@ -310,10 +322,10 @@ function WatchlistPicker({
         })}
       </div>
       <div className="mt-3 flex justify-end gap-2">
-        <button type="button" onClick={onCancel} className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-slate-300 transition hover:border-white/20 hover:text-white">
+        <button data-testid="watchlist-picker-cancel" type="button" onClick={onCancel} className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-slate-300 transition hover:border-white/20 hover:text-white">
           取消
         </button>
-        <button type="button" onClick={onConfirm} className="rounded-full border border-sky-300/40 bg-sky-400/16 px-3 py-1.5 text-xs text-sky-100 transition hover:border-sky-200/60 hover:bg-sky-400/22">
+        <button data-testid="watchlist-picker-confirm" type="button" onClick={onConfirm} className="rounded-full border border-sky-300/40 bg-sky-400/16 px-3 py-1.5 text-xs text-sky-100 transition hover:border-sky-200/60 hover:bg-sky-400/22">
           确认
         </button>
       </div>
@@ -326,8 +338,10 @@ function HoldingInputPanel({
   mode,
   amount,
   pnl,
+  amountBasis,
   onAmountChange,
   onPnlChange,
+  onAmountBasisChange,
   onCancel,
   onConfirm,
 }: {
@@ -335,30 +349,61 @@ function HoldingInputPanel({
   mode: 'add' | 'edit'
   amount: string
   pnl: string
+  amountBasis: 'T_MINUS_1' | 'T'
   onAmountChange: (value: string) => void
   onPnlChange: (value: string) => void
+  onAmountBasisChange: (value: 'T_MINUS_1' | 'T') => void
   onCancel: () => void
   onConfirm: () => void
 }) {
   return (
-    <div className="absolute left-0 top-[calc(100%+0.6rem)] z-30 w-80 rounded-[1.25rem] border border-emerald-400/20 bg-slate-950/98 p-3 shadow-[0_18px_40px_rgba(15,23,42,0.45)] backdrop-blur-xl">
+    <div data-testid={`holding-input-panel-${mode}`} className="absolute left-0 top-[calc(100%+0.6rem)] z-30 w-80 rounded-[1.25rem] border border-emerald-400/20 bg-slate-950/98 p-3 shadow-[0_18px_40px_rgba(15,23,42,0.45)] backdrop-blur-xl">
       <p className="text-xs uppercase tracking-[0.2em] text-emerald-300">{mode === 'edit' ? '修改持仓' : '加入持仓'}</p>
       <p className="mt-1 text-sm text-white">{fundName}</p>
       <div className="mt-3 space-y-3">
+        <div>
+          <span className="text-xs text-slate-400">金额口径</span>
+          <div data-testid="holding-input-amount-basis" className="mt-1 inline-flex rounded-xl border border-white/10 bg-white/5 p-1">
+            <button
+              data-testid="holding-input-amount-basis-t"
+              type="button"
+              onClick={() => onAmountBasisChange('T')}
+              className={`rounded-lg px-3 py-1.5 text-xs transition ${
+                amountBasis === 'T'
+                  ? 'bg-emerald-400/18 text-emerald-100'
+                  : 'text-slate-300 hover:text-white'
+              }`}
+            >
+              T 日金额
+            </button>
+            <button
+              data-testid="holding-input-amount-basis-t-minus-1"
+              type="button"
+              onClick={() => onAmountBasisChange('T_MINUS_1')}
+              className={`rounded-lg px-3 py-1.5 text-xs transition ${
+                amountBasis === 'T_MINUS_1'
+                  ? 'bg-emerald-400/18 text-emerald-100'
+                  : 'text-slate-300 hover:text-white'
+              }`}
+            >
+              T-1 金额
+            </button>
+          </div>
+        </div>
         <label className="block">
           <span className="text-xs text-slate-400">持有金额</span>
-          <input type="number" min="0" step="0.01" value={amount} onChange={(event) => onAmountChange(event.target.value)} placeholder="例如 5000" className="mt-1 w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none placeholder:text-slate-500 focus:border-emerald-300/40" />
+          <input data-testid="holding-input-amount" type="number" min="0" step="0.01" value={amount} onChange={(event) => onAmountChange(event.target.value)} placeholder="例如 5000" className="mt-1 w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none placeholder:text-slate-500 focus:border-emerald-300/40" />
         </label>
         <label className="block">
           <span className="text-xs text-slate-400">持有收益</span>
-          <input type="number" step="0.01" value={pnl} onChange={(event) => onPnlChange(event.target.value)} placeholder="例如 320 或 -120" className="mt-1 w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none placeholder:text-slate-500 focus:border-emerald-300/40" />
+          <input data-testid="holding-input-pnl" type="number" step="0.01" value={pnl} onChange={(event) => onPnlChange(event.target.value)} placeholder="例如 320 或 -120" className="mt-1 w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none placeholder:text-slate-500 focus:border-emerald-300/40" />
         </label>
       </div>
       <div className="mt-3 flex justify-end gap-2">
-        <button type="button" onClick={onCancel} className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-slate-300 transition hover:border-white/20 hover:text-white">
+        <button data-testid="holding-input-cancel" type="button" onClick={onCancel} className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-slate-300 transition hover:border-white/20 hover:text-white">
           取消
         </button>
-        <button type="button" onClick={onConfirm} className="rounded-full border border-emerald-300/40 bg-emerald-400/16 px-3 py-1.5 text-xs text-emerald-100 transition hover:border-emerald-200/60 hover:bg-emerald-400/22">
+        <button data-testid="holding-input-confirm" type="button" onClick={onConfirm} className="rounded-full border border-emerald-300/40 bg-emerald-400/16 px-3 py-1.5 text-xs text-emerald-100 transition hover:border-emerald-200/60 hover:bg-emerald-400/22">
           {mode === 'edit' ? '确认修改' : '加入持仓'}
         </button>
       </div>
@@ -392,13 +437,13 @@ function SipInputPanel({
   onConfirm: () => void
 }) {
   return (
-    <div className="absolute left-0 top-[calc(100%+0.6rem)] z-30 w-80 rounded-[1.25rem] border border-[color:var(--fc-color-accent)]/20 bg-slate-950/98 p-3 shadow-[0_18px_40px_rgba(15,23,42,0.45)] backdrop-blur-xl">
+    <div data-testid="sip-input-panel" className="absolute left-0 top-[calc(100%+0.6rem)] z-30 w-80 rounded-[1.25rem] border border-[color:var(--fc-color-accent)]/20 bg-slate-950/98 p-3 shadow-[0_18px_40px_rgba(15,23,42,0.45)] backdrop-blur-xl">
       <p className="text-xs uppercase tracking-[0.2em] text-[color:var(--fc-color-accent)]/80">创建定投计划</p>
       <p className="mt-1 text-sm text-white">{fundName}</p>
       <div className="mt-3 space-y-3">
         <label className="block">
           <span className="text-xs text-slate-400">定投周期</span>
-          <select value={cadence} onChange={(event) => onCadenceChange(event.target.value as 'DAILY' | 'WEEKLY' | 'MONTHLY')} className="mt-1 w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none focus:border-[color:var(--fc-color-accent)]/40">
+          <select data-testid="sip-input-cadence" value={cadence} onChange={(event) => onCadenceChange(event.target.value as 'DAILY' | 'WEEKLY' | 'MONTHLY')} className="mt-1 w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none focus:border-[color:var(--fc-color-accent)]/40">
             <option value="DAILY">每日</option>
             <option value="WEEKLY">每周</option>
             <option value="MONTHLY">每月</option>
@@ -407,7 +452,7 @@ function SipInputPanel({
         {cadence === 'WEEKLY' ? (
           <label className="block">
             <span className="text-xs text-slate-400">定投时间</span>
-            <select value={weekday} onChange={(event) => onWeekdayChange(event.target.value as '1' | '2' | '3' | '4' | '5' | '6' | '0')} className="mt-1 w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none focus:border-[color:var(--fc-color-accent)]/40">
+            <select data-testid="sip-input-weekday" value={weekday} onChange={(event) => onWeekdayChange(event.target.value as '1' | '2' | '3' | '4' | '5' | '6' | '0')} className="mt-1 w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none focus:border-[color:var(--fc-color-accent)]/40">
               <option value="1">周一</option>
               <option value="2">周二</option>
               <option value="3">周三</option>
@@ -421,7 +466,7 @@ function SipInputPanel({
         {cadence === 'MONTHLY' ? (
           <label className="block">
             <span className="text-xs text-slate-400">定投日期</span>
-            <select value={monthDay} onChange={(event) => onMonthDayChange(event.target.value)} className="mt-1 w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none focus:border-[color:var(--fc-color-accent)]/40">
+            <select data-testid="sip-input-month-day" value={monthDay} onChange={(event) => onMonthDayChange(event.target.value)} className="mt-1 w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none focus:border-[color:var(--fc-color-accent)]/40">
               {Array.from({ length: 28 }, (_, index) => {
                 const day = String(index + 1)
                 return (
@@ -435,14 +480,14 @@ function SipInputPanel({
         ) : null}
         <label className="block">
           <span className="text-xs text-slate-400">定投金额</span>
-          <input type="number" min="0" step="0.01" value={amount} onChange={(event) => onAmountChange(event.target.value)} placeholder="例如 500" className="mt-1 w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none placeholder:text-slate-500 focus:border-[color:var(--fc-color-accent)]/40" />
+          <input data-testid="sip-input-amount" type="number" min="0" step="0.01" value={amount} onChange={(event) => onAmountChange(event.target.value)} placeholder="例如 500" className="mt-1 w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none placeholder:text-slate-500 focus:border-[color:var(--fc-color-accent)]/40" />
         </label>
       </div>
       <div className="mt-3 flex justify-end gap-2">
-        <button type="button" onClick={onCancel} className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-slate-300 transition hover:border-white/20 hover:text-white">
+        <button data-testid="sip-input-cancel" type="button" onClick={onCancel} className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-slate-300 transition hover:border-white/20 hover:text-white">
           取消
         </button>
-        <button type="button" onClick={onConfirm} className="rounded-full border border-[color:var(--fc-color-accent)]/35 bg-[color:var(--fc-color-accent)]/14 px-3 py-1.5 text-xs text-[color:var(--fc-color-accent)] transition hover:border-[color:var(--fc-color-accent)]/55 hover:bg-[color:var(--fc-color-accent)]/20">
+        <button data-testid="sip-input-confirm" type="button" onClick={onConfirm} className="rounded-full border border-[color:var(--fc-color-accent)]/35 bg-[color:var(--fc-color-accent)]/14 px-3 py-1.5 text-xs text-[color:var(--fc-color-accent)] transition hover:border-[color:var(--fc-color-accent)]/55 hover:bg-[color:var(--fc-color-accent)]/20">
           确认设定
         </button>
       </div>

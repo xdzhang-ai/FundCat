@@ -83,20 +83,20 @@ export function createWorkspaceEnsureLoaders({
     return watchlist
   }
 
+  async function ensureWatchlistGroups(force = false) {
+    const cached = getData().watchlistGroupOptions
+    if (!force && cached) return cached
+    const watchlistGroupOptions = await workspaceApi.watchlistGroups()
+    setData((current) => ({ ...current, watchlistGroupOptions }))
+    return watchlistGroupOptions
+  }
+
   async function ensureHoldingsOverview(force = false) {
     const cached = getData().holdingsOverview
     if (!force && cached) return cached
     const holdingsOverview = await workspaceApi.holdingsOverview()
     setData((current) => ({ ...current, holdingsOverview }))
     return holdingsOverview
-  }
-
-  async function ensurePortfolios(force = false) {
-    const cached = getData().portfolios
-    if (!force && cached) return cached
-    const portfolios = await workspaceApi.portfolios()
-    setData((current) => ({ ...current, portfolios }))
-    return portfolios
   }
 
   async function ensureOrders(force = false) {
@@ -113,30 +113,6 @@ export function createWorkspaceEnsureLoaders({
     const sipPlans = await workspaceApi.sipPlans()
     setData((current) => ({ ...current, sipPlans }))
     return sipPlans
-  }
-
-  async function ensureReports(force = false) {
-    const cached = getData().reports
-    if (!force && cached) return cached
-    const reports = await workspaceApi.weeklyReports()
-    setData((current) => ({ ...current, reports }))
-    return reports
-  }
-
-  async function ensureAlerts(force = false) {
-    const cached = getData().alerts
-    if (!force && cached) return cached
-    const alerts = await workspaceApi.alerts()
-    setData((current) => ({ ...current, alerts }))
-    return alerts
-  }
-
-  async function ensureImportJobs(force = false) {
-    const cached = getData().importJobs
-    if (!force && cached) return cached
-    const importJobs = await workspaceApi.importJobs()
-    setData((current) => ({ ...current, importJobs }))
-    return importJobs
   }
 
   async function ensureFundDetail(code: string, force = false) {
@@ -178,20 +154,17 @@ export function createWorkspaceEnsureLoaders({
   }
 
   return {
-    ensureAlerts,
     ensureFeatureFlags,
     ensureFundDetail,
     ensureFundHoldingInsight,
     clearFundHoldingInsight,
     ensureFunds,
     ensureHoldingsOverview,
-    ensureImportJobs,
     ensureOrders,
     ensureOverviewDashboard,
-    ensurePortfolios,
-    ensureReports,
     ensureSipRecords,
     ensureSipPlans,
     ensureWatchlist,
+    ensureWatchlistGroups,
   }
 }

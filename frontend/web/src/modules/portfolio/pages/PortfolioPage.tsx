@@ -1,5 +1,6 @@
 /** 自选基金页，按分组展示自选列表并提供移除、调整分组等能力。 */
 import type { WatchlistItem } from '@fundcat/contracts'
+import { Plus } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { SectionCard } from '../../../common/components/SectionCard'
 import { formatCompactPercent } from '../../../common/utils/fundInsights'
@@ -10,50 +11,51 @@ type WatchlistRow = {
   dayGrowth: number
   held: boolean
   group: string
-  assignedGroup: string
 }
-
-const groupOrder = ['全部', '成长进攻', '稳健配置', '行业主题'] as const
-type WatchlistGroup = (typeof groupOrder)[number]
 
 export function PortfolioPage({
   watchlist,
+  groupOptions,
   groupSelections,
   onAssignGroup,
+  onCreateGroup,
   onOpenFund,
   onRemoveFund,
 }: {
   watchlist: WatchlistItem[]
-  groupSelections: Record<string, WatchlistGroup[]>
-  onAssignGroup: (codes: string[], group: Exclude<WatchlistGroup, '全部'>) => void
+  groupOptions: string[]
+  groupSelections: Record<string, string>
+  onAssignGroup: (codes: string[], group: string) => void
+  onCreateGroup: (name: string) => Promise<unknown> | unknown
   onOpenFund: (code: string) => void
   onRemoveFund: (code: string) => Promise<void> | void
 }) {
-  const [activeGroup, setActiveGroup] = useState<(typeof groupOrder)[number]>('全部')
+  const [activeGroup, setActiveGroup] = useState<string>('全部')
   const [movingFundCode, setMovingFundCode] = useState<string | null>(null)
   const [confirmingDeleteCode, setConfirmingDeleteCode] = useState<string | null>(null)
   const [selectedCodes, setSelectedCodes] = useState<string[]>([])
   const [batchMovingOpen, setBatchMovingOpen] = useState(false)
   const [batchDeleteOpen, setBatchDeleteOpen] = useState(false)
+  const [createGroupOpen, setCreateGroupOpen] = useState(false)
+  const [newGroupName, setNewGroupName] = useState('')
   const movingMenuRef = useRef<HTMLDivElement | null>(null)
   const deleteConfirmRef = useRef<HTMLDivElement | null>(null)
   const batchMoveMenuRef = useRef<HTMLDivElement | null>(null)
   const batchDeleteRef = useRef<HTMLDivElement | null>(null)
+  const createGroupRef = useRef<HTMLDivElement | null>(null)
 
   const rows = useMemo<WatchlistRow[]>(() => {
     const deduped = new Map<string, WatchlistRow>()
 
     watchlist.forEach((item) => {
       if (deduped.has(item.code)) return
-
-      const assignedGroup = resolveAssignedGroup(item.code, groupSelections[item.code])
+      const assignedGroup = groupSelections[item.code] ?? item.group ?? '全部'
       deduped.set(item.code, {
         code: item.code,
         name: item.name,
         dayGrowth: item.estimatedGrowth,
         held: item.held ?? false,
         group: assignedGroup,
-        assignedGroup,
       })
     })
 
@@ -65,16 +67,20 @@ export function PortfolioPage({
     [activeGroup, rows],
   )
 
-  const showSelectionColumn = true
-  const showAssignedGroupColumn = activeGroup === '全部'
-  const tableColumns = showAssignedGroupColumn
+  const tableColumns = activeGroup === '全部'
     ? '52px minmax(260px,2.2fr) 120px 120px 140px 84px'
     : '52px minmax(260px,2.2fr) 120px 140px 84px'
   const selectedCount = selectedCodes.length
   const allVisibleSelected = visibleRows.length > 0 && selectedCodes.length === visibleRows.length
 
   useEffect(() => {
-    if (!movingFundCode && !confirmingDeleteCode && !batchMovingOpen && !batchDeleteOpen) return
+    if (!groupOptions.includes(activeGroup)) {
+      setActiveGroup('全部')
+    }
+  }, [activeGroup, groupOptions])
+
+  useEffect(() => {
+    if (!movingFundCode && !confirmingDeleteCode && !batchMovingOpen && !batchDeleteOpen && !createGroupOpen) return
 
     function handlePointerDown(event: MouseEvent) {
       if (!movingMenuRef.current?.contains(event.target as Node)) {
@@ -89,6 +95,9 @@ export function PortfolioPage({
       if (!batchDeleteRef.current?.contains(event.target as Node)) {
         setBatchDeleteOpen(false)
       }
+      if (!createGroupRef.current?.contains(event.target as Node)) {
+        setCreateGroupOpen(false)
+      }
     }
 
     function handleEscape(event: KeyboardEvent) {
@@ -97,6 +106,7 @@ export function PortfolioPage({
         setConfirmingDeleteCode(null)
         setBatchMovingOpen(false)
         setBatchDeleteOpen(false)
+        setCreateGroupOpen(false)
       }
     }
 
@@ -106,19 +116,12 @@ export function PortfolioPage({
       document.removeEventListener('mousedown', handlePointerDown)
       document.removeEventListener('keydown', handleEscape)
     }
-  }, [batchDeleteOpen, batchMovingOpen, confirmingDeleteCode, movingFundCode])
+  }, [batchDeleteOpen, batchMovingOpen, confirmingDeleteCode, createGroupOpen, movingFundCode])
 
   useEffect(() => {
-    if (!showSelectionColumn) {
-      setSelectedCodes([])
-      setBatchMovingOpen(false)
-      setBatchDeleteOpen(false)
-      return
-    }
-
     const visibleCodeSet = new Set(visibleRows.map((row) => row.code))
     setSelectedCodes((current) => current.filter((code) => visibleCodeSet.has(code)))
-  }, [showSelectionColumn, visibleRows])
+  }, [visibleRows])
 
   function toggleSelectedCode(code: string) {
     setSelectedCodes((current) => (current.includes(code) ? current.filter((item) => item !== code) : [...current, code]))
@@ -133,7 +136,7 @@ export function PortfolioPage({
   }
 
   function handleBatchMove(targetGroup: string) {
-    onAssignGroup(selectedCodes, targetGroup as Exclude<WatchlistGroup, '全部'>)
+    onAssignGroup(selectedCodes, targetGroup)
     setBatchMovingOpen(false)
     setSelectedCodes([])
   }
@@ -147,19 +150,69 @@ export function PortfolioPage({
     }
   }
 
+  async function handleCreateGroup() {
+    const normalizedName = newGroupName.trim()
+    if (!normalizedName) {
+      return
+    }
+    await onCreateGroup(normalizedName)
+    setNewGroupName('')
+    setCreateGroupOpen(false)
+  }
+
   return (
     <SectionCard title="自选基金" eyebrow="Watchlist page">
       <div className="grid gap-5 xl:grid-cols-[220px_minmax(0,1fr)]">
         <div className="rounded-[1.5rem] border border-white/8 bg-white/5 p-3">
-          <div className="mb-3 px-2 text-[0.72rem] uppercase tracking-[0.28em] text-[color:var(--fc-color-accent)]/80">
-            Watch groups
+          <div className="mb-3 flex items-center justify-between gap-2 px-2 text-[0.72rem] uppercase tracking-[0.28em] text-[color:var(--fc-color-accent)]/80">
+            <span>Watch groups</span>
+            <div ref={createGroupOpen ? createGroupRef : null} className="relative">
+              <button
+                data-testid="watchlist-create-group-button"
+                type="button"
+                onClick={() => setCreateGroupOpen((current) => !current)}
+                className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-[color:var(--fc-color-accent)]/30 bg-[color:var(--fc-color-accent)]/10 text-[color:var(--fc-color-accent)] transition hover:border-[color:var(--fc-color-accent)]/55 hover:bg-[color:var(--fc-color-accent)]/18"
+              >
+                <Plus className="h-4 w-4" />
+              </button>
+              {createGroupOpen ? (
+                <div className="absolute right-0 top-full z-20 mt-2 w-64 rounded-2xl border border-white/10 bg-slate-950/95 p-3 shadow-[0_18px_40px_rgba(15,23,42,0.45)] backdrop-blur-xl">
+                  <p className="text-xs uppercase tracking-[0.2em] text-[color:var(--fc-color-accent)]">新增分组</p>
+                  <input
+                    data-testid="watchlist-create-group-input"
+                    value={newGroupName}
+                    onChange={(event) => setNewGroupName(event.target.value)}
+                    placeholder="输入分组名称"
+                    className="mt-3 w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none placeholder:text-slate-500"
+                  />
+                  <div className="mt-3 flex justify-end gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setCreateGroupOpen(false)}
+                      className="rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-slate-300 transition hover:border-white/20 hover:text-white"
+                    >
+                      取消
+                    </button>
+                    <button
+                      data-testid="watchlist-create-group-confirm"
+                      type="button"
+                      onClick={() => void handleCreateGroup()}
+                      className="rounded-lg border border-[color:var(--fc-color-accent)]/35 bg-[color:var(--fc-color-accent)]/14 px-3 py-1.5 text-xs text-[color:var(--fc-color-accent)] transition hover:border-[color:var(--fc-color-accent)]/55 hover:bg-[color:var(--fc-color-accent)]/22"
+                    >
+                      新增
+                    </button>
+                  </div>
+                </div>
+              ) : null}
+            </div>
           </div>
           <div className="space-y-2">
-            {groupOrder.map((group) => {
+            {groupOptions.map((group) => {
               const active = activeGroup === group
               const count = group === '全部' ? rows.length : rows.filter((row) => row.group === group).length
               return (
                 <button
+                  data-testid={`watchlist-group-tab-${group}`}
                   key={group}
                   onClick={() => setActiveGroup(group)}
                   className={`group relative flex w-full items-center justify-between overflow-visible rounded-2xl border px-4 py-3 text-left text-sm transition ${
@@ -172,12 +225,6 @@ export function PortfolioPage({
                   <span className={`text-[0.72rem] ${active ? 'text-[color:var(--fc-color-accent)]/70' : 'text-slate-500'}`}>
                     {count}
                   </span>
-                  {active ? (
-                    <span
-                      aria-hidden="true"
-                      className="absolute -right-5 top-1/2 h-0 w-0 -translate-y-1/2 border-y-[16px] border-l-[20px] border-y-transparent border-l-[color:var(--fc-color-accent)]/18 drop-shadow-[8px_0_14px_rgba(255,193,59,0.08)]"
-                    />
-                  ) : null}
                 </button>
               )
             })}
@@ -191,10 +238,11 @@ export function PortfolioPage({
               <p>展示当前分组下的自选基金列表</p>
             </div>
             <div className="flex items-center gap-2">
-              {showSelectionColumn && selectedCount > 0 ? (
+              {selectedCount > 0 ? (
                 <>
                   <div ref={batchMovingOpen ? batchMoveMenuRef : null} className="relative">
                     <button
+                      data-testid="watchlist-batch-assign-button"
                       type="button"
                       onClick={() => {
                         setBatchMovingOpen((current) => !current)
@@ -205,8 +253,8 @@ export function PortfolioPage({
                       加入分组
                     </button>
                     {batchMovingOpen ? (
-                      <div className="absolute right-0 top-full z-20 mt-2 w-36 overflow-hidden rounded-2xl border border-white/10 bg-slate-950/95 p-1 shadow-[0_18px_40px_rgba(15,23,42,0.45)] backdrop-blur-xl">
-                        {groupOrder
+                      <div className="absolute right-0 top-full z-20 mt-2 w-40 overflow-hidden rounded-2xl border border-white/10 bg-slate-950/95 p-1 shadow-[0_18px_40px_rgba(15,23,42,0.45)] backdrop-blur-xl">
+                        {groupOptions
                           .filter((group) => group !== '全部')
                           .map((group) => (
                             <button
@@ -223,6 +271,7 @@ export function PortfolioPage({
                   </div>
                   <div ref={batchDeleteOpen ? batchDeleteRef : null} className="relative">
                     <button
+                      data-testid="watchlist-batch-delete-button"
                       type="button"
                       onClick={() => {
                         setBatchDeleteOpen((current) => !current)
@@ -266,29 +315,27 @@ export function PortfolioPage({
           <div className="relative rounded-[1.75rem] border border-white/8 bg-white/5">
             <div className="rounded-[1.75rem]">
               <div className="grid gap-3 border-b border-white/8 px-4 py-3 text-xs text-slate-400" style={{ gridTemplateColumns: tableColumns }}>
-                {showSelectionColumn ? (
-                  <div className="flex items-center justify-center">
-                    <button
-                      type="button"
-                      aria-label="全选自选基金"
-                      onClick={toggleSelectAll}
-                      className={`inline-flex h-5 w-5 items-center justify-center rounded border text-[0.72rem] transition ${
-                        allVisibleSelected
-                          ? 'border-[color:var(--fc-color-accent)]/55 bg-[color:var(--fc-color-accent)]/15 text-[color:var(--fc-color-accent)]'
-                          : 'border-white/15 bg-white/5 text-slate-400 hover:border-white/25 hover:text-white'
-                      }`}
-                    >
-                      {allVisibleSelected ? '✓' : ''}
-                    </button>
-                  </div>
-                ) : null}
+                <div className="flex items-center justify-center">
+                  <button
+                    type="button"
+                    aria-label="全选自选基金"
+                    onClick={toggleSelectAll}
+                    className={`inline-flex h-5 w-5 items-center justify-center rounded border text-[0.72rem] transition ${
+                      allVisibleSelected
+                        ? 'border-[color:var(--fc-color-accent)]/55 bg-[color:var(--fc-color-accent)]/15 text-[color:var(--fc-color-accent)]'
+                        : 'border-white/15 bg-white/5 text-slate-400 hover:border-white/25 hover:text-white'
+                    }`}
+                  >
+                    {allVisibleSelected ? '✓' : ''}
+                  </button>
+                </div>
                 <div className="inline-flex min-w-0 rounded-xl py-1.5 pr-2 text-left text-[0.88rem] text-slate-400">
                   <span className="block w-full truncate">基金名称 + 代码</span>
                 </div>
                 <div className="inline-flex min-w-0 justify-center rounded-xl py-1.5 text-[0.88rem] text-slate-400">
                   <span className="block truncate text-center">当日涨幅</span>
                 </div>
-                {showAssignedGroupColumn ? (
+                {activeGroup === '全部' ? (
                   <div className="inline-flex min-w-0 justify-center rounded-xl py-1.5 text-[0.88rem] text-slate-400">
                     <span className="block truncate text-center">所属分组</span>
                   </div>
@@ -317,25 +364,23 @@ export function PortfolioPage({
                     className="grid w-full cursor-pointer gap-3 px-4 py-4 text-left transition hover:bg-white/5 focus:outline-none focus-visible:bg-white/5"
                     style={{ gridTemplateColumns: tableColumns }}
                   >
-                    {showSelectionColumn ? (
-                      <div className="flex items-center justify-center">
-                        <button
-                          type="button"
-                          aria-label={`勾选 ${row.name}`}
-                          onClick={(event) => {
-                            event.stopPropagation()
-                            toggleSelectedCode(row.code)
-                          }}
-                          className={`inline-flex h-5 w-5 items-center justify-center rounded border text-[0.72rem] transition ${
-                            selectedCodes.includes(row.code)
-                              ? 'border-[color:var(--fc-color-accent)]/55 bg-[color:var(--fc-color-accent)]/15 text-[color:var(--fc-color-accent)]'
-                              : 'border-white/15 bg-white/5 text-slate-400 hover:border-white/25 hover:text-white'
-                          }`}
-                        >
-                          {selectedCodes.includes(row.code) ? '✓' : ''}
-                        </button>
-                      </div>
-                    ) : null}
+                    <div className="flex items-center justify-center">
+                      <button
+                        type="button"
+                        aria-label={`勾选 ${row.name}`}
+                        onClick={(event) => {
+                          event.stopPropagation()
+                          toggleSelectedCode(row.code)
+                        }}
+                        className={`inline-flex h-5 w-5 items-center justify-center rounded border text-[0.72rem] transition ${
+                          selectedCodes.includes(row.code)
+                            ? 'border-[color:var(--fc-color-accent)]/55 bg-[color:var(--fc-color-accent)]/15 text-[color:var(--fc-color-accent)]'
+                            : 'border-white/15 bg-white/5 text-slate-400 hover:border-white/25 hover:text-white'
+                        }`}
+                      >
+                        {selectedCodes.includes(row.code) ? '✓' : ''}
+                      </button>
+                    </div>
                     <div className="min-w-0">
                       <p className="truncate font-[var(--fc-font-display)] text-[0.92rem] text-white xl:text-[1rem]">{row.name}</p>
                       <p className="mt-1 flex items-center gap-2 text-[0.8rem] text-slate-500">
@@ -356,18 +401,18 @@ export function PortfolioPage({
                         {formatCompactPercent(row.dayGrowth)}
                       </p>
                     </div>
-                    {showAssignedGroupColumn ? (
+                    {activeGroup === '全部' ? (
                       <div className="flex items-center justify-center">
-                        {row.assignedGroup && row.assignedGroup !== '全部' ? (
+                        {row.group && row.group !== '全部' ? (
                           <button
                             type="button"
                             onClick={(event) => {
                               event.stopPropagation()
-                              setActiveGroup(row.assignedGroup as (typeof groupOrder)[number])
+                              setActiveGroup(row.group)
                             }}
                             className="truncate rounded-full border border-white/8 bg-white/5 px-3 py-1 text-xs text-slate-300 transition hover:border-[color:var(--fc-color-accent)]/35 hover:bg-[color:var(--fc-color-accent)]/8 hover:text-[color:var(--fc-color-accent)]"
                           >
-                            {row.assignedGroup}
+                            {row.group}
                           </button>
                         ) : (
                           <span className="block h-6 w-full" />
@@ -388,17 +433,17 @@ export function PortfolioPage({
                       </button>
                       {movingFundCode === row.code ? (
                         <div
-                          className="absolute left-1/2 top-full z-20 mt-2 w-36 overflow-hidden rounded-2xl border border-white/10 bg-slate-950/95 p-1 shadow-[0_18px_40px_rgba(15,23,42,0.45)] backdrop-blur-xl"
+                          className="absolute left-1/2 top-full z-20 mt-2 w-40 overflow-hidden rounded-2xl border border-white/10 bg-slate-950/95 p-1 shadow-[0_18px_40px_rgba(15,23,42,0.45)] backdrop-blur-xl"
                           onClick={(event) => event.stopPropagation()}
                         >
-                          {groupOrder
+                          {groupOptions
                             .filter((group) => group !== '全部')
                             .map((group) => (
                               <button
                                 key={group}
                                 type="button"
                                 onClick={() => {
-                                  onAssignGroup([row.code], group as Exclude<WatchlistGroup, '全部'>)
+                                  onAssignGroup([row.code], group)
                                   setMovingFundCode(null)
                                 }}
                                 className={`flex w-full items-center justify-between rounded-xl px-3 py-2 text-sm transition ${
@@ -467,36 +512,4 @@ export function PortfolioPage({
       </div>
     </SectionCard>
   )
-}
-
-function resolveWatchlistGroup(code: string) {
-  switch (code) {
-    case '000001':
-    case '519674':
-      return '成长进攻'
-    case '005827':
-      return '稳健配置'
-    case '161725':
-      return '行业主题'
-    case '012348':
-    case '008552':
-      return '成长进攻'
-    case '002190':
-    case '006113':
-      return '稳健配置'
-    case '001632':
-    case '161039':
-      return '行业主题'
-    default:
-      return ''
-  }
-}
-
-function resolveAssignedGroup(code: string, selections?: WatchlistGroup[]) {
-  const selectedSpecificGroup = selections?.find((group) => group !== '全部')
-  if (selectedSpecificGroup) {
-    return selectedSpecificGroup
-  }
-  const resolved = resolveWatchlistGroup(code)
-  return resolved || '全部'
 }

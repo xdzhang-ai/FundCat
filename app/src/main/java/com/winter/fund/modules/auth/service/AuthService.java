@@ -32,6 +32,9 @@ public class AuthService {
         this.tokenService = tokenService;
     }
 
+    /**
+     * 返回register结果。
+     */
     public AuthDtos.AuthResponse register(AuthDtos.RegisterRequest request) {
         log.info("Registering new user, username={}", request.username());
         if (userRepository.findByUsername(request.username()).isPresent()) {
@@ -56,6 +59,9 @@ public class AuthService {
         return toAuthResponse(saved, tokenService.issue(saved));
     }
 
+    /**
+     * 返回login结果。
+     */
     public AuthDtos.AuthResponse login(AuthDtos.LoginRequest request) {
         log.info("Login attempt, username={}", request.username());
         UserEntity user = userRepository.findByUsername(request.username())
@@ -68,6 +74,9 @@ public class AuthService {
         return toAuthResponse(user, tokenService.issue(user));
     }
 
+    /**
+     * 返回refresh结果。
+     */
     public AuthDtos.AuthResponse refresh(AuthDtos.RefreshRequest request) {
         log.info("Refreshing access token");
         TokenService.IssuedTokens tokens = tokenService.refresh(request.refreshToken())
@@ -80,12 +89,18 @@ public class AuthService {
         return toAuthResponse(user, tokens);
     }
 
+    /**
+     * 返回me结果。
+     */
     public AuthDtos.UserProfileResponse me(CurrentUser currentUser) {
         UserEntity user = userRepository.findById(currentUser.id())
             .orElseThrow(() -> new NotFoundException("User not found"));
         return toProfile(user);
     }
 
+    /**
+     * 执行logout流程。
+     */
     public void logout(String authorizationHeader) {
         String accessToken = extractBearerToken(authorizationHeader);
         log.info("Revoking access token");
@@ -93,6 +108,9 @@ public class AuthService {
         log.info("Access token revoked");
     }
 
+    /**
+     * 转换为认证响应。
+     */
     private AuthDtos.AuthResponse toAuthResponse(UserEntity user, TokenService.IssuedTokens issuedTokens) {
         return new AuthDtos.AuthResponse(
             issuedTokens.accessToken(),
@@ -102,10 +120,16 @@ public class AuthService {
         );
     }
 
+    /**
+     * 转换为资料。
+     */
     private AuthDtos.UserProfileResponse toProfile(UserEntity user) {
         return new AuthDtos.UserProfileResponse(user.getId(), user.getDisplayName(), user.getUsername(), user.getRiskMode());
     }
 
+    /**
+     * 返回extractBearerToken结果。
+     */
     private String extractBearerToken(String authorizationHeader) {
         if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
             throw new IllegalArgumentException("Missing bearer token");

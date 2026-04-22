@@ -98,33 +98,23 @@ function App() {
         <main className="min-w-0 space-y-6">
           <header className="rounded-[2rem] border border-white/8 bg-[color:var(--fc-color-surface-glass)] px-5 py-6 shadow-[var(--fc-shadow-card)] backdrop-blur-xl">
             <p className="text-sm uppercase tracking-[0.24em] text-[color:var(--fc-color-accent)]">{workspace.currentPageMeta.eyebrow}</p>
-            <div className="mt-4 flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
-              <div>
+            <div className="mt-4 flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+              <div className="min-w-0 max-w-3xl">
                 <h2 className="font-[var(--fc-font-display)] text-4xl font-semibold text-white">{workspace.currentPageMeta.title}</h2>
                 <p className="mt-3 max-w-3xl text-slate-300">{workspace.currentPageMeta.description}</p>
-                {workspace.activePage === 'holdings' ? (
-                  <div className="mt-5 max-w-[340px] rounded-[1.45rem] border border-white/8 bg-[linear-gradient(135deg,rgba(243,186,47,0.12),rgba(255,255,255,0.04),rgba(8,12,20,0.2))] px-5 py-4">
-                    <p className="text-xs uppercase tracking-[0.18em] text-[color:var(--fc-color-accent)]/80">组合市值</p>
-                    <p className="mt-3 font-[var(--fc-font-display)] text-3xl text-white">{formatCurrency(workspace.holdingsMarketValue)}</p>
-                    <p className="mt-2 text-xs text-slate-500">汇总当前组合下所有基金持仓市值</p>
-                  </div>
-                ) : null}
               </div>
-              {workspace.data.selectedFund ? (
-                <div className="flex flex-wrap gap-2">
-                  <span className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-slate-300">
-                    焦点基金 {workspace.effectiveSelectedFund?.code ?? workspace.data.selectedFund.code}
-                  </span>
-                  <span className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-slate-300">
-                    {(workspace.effectiveSelectedFund ?? workspace.data.selectedFund).referenceOnly ? '实时涨跌参考' : '前一交易日涨跌'}
-                  </span>
+              {workspace.activePage === 'holdings' ? (
+                <div className="w-full max-w-[340px] rounded-[1.45rem] border border-white/8 bg-[linear-gradient(135deg,rgba(243,186,47,0.12),rgba(255,255,255,0.04),rgba(8,12,20,0.2))] px-5 py-4 xl:ml-auto">
+                  <p className="text-xs uppercase tracking-[0.18em] text-[color:var(--fc-color-accent)]/80">组合市值</p>
+                  <p className="mt-3 font-[var(--fc-font-display)] text-3xl text-white">{formatCurrency(workspace.holdingsMarketValue)}</p>
+                  <p className="mt-2 text-xs text-slate-500">汇总当前组合下所有基金持仓市值</p>
                 </div>
               ) : null}
             </div>
           </header>
 
           {workspace.actionMessage ? (
-            <div className={`rounded-3xl border px-4 py-3 text-sm ${workspace.actionMessageToneClass}`}>
+            <div data-testid="action-message" className={`rounded-3xl border px-4 py-3 text-sm ${workspace.actionMessageToneClass}`}>
               {workspace.actionMessage}
             </div>
           ) : null}
@@ -137,16 +127,14 @@ function App() {
                   workspace.data.overviewHeroMetrics &&
                     workspace.data.overviewWatchlistPulse &&
                     workspace.data.overviewRecentActions &&
-                    workspace.data.overviewSipPlanDigests &&
-                    workspace.data.selectedFund,
+                    workspace.data.overviewSipPlanDigests,
                 ),
                 workspace.isRouteLoading,
                 workspace.showRouteLoading,
                 <OverviewPage
-                  heroMetrics={workspace.data.overviewHeroMetrics!.metrics}
-                  watchlistPulse={workspace.data.overviewWatchlistPulse!.items}
-                  recentActions={workspace.data.overviewRecentActions!.items}
-                  sipPlanDigests={workspace.data.overviewSipPlanDigests!.items}
+                  watchlistPulse={workspace.data.overviewWatchlistPulse?.items ?? []}
+                  recentActions={workspace.data.overviewRecentActions?.items ?? []}
+                  sipPlanDigests={workspace.data.overviewSipPlanDigests?.items ?? []}
                 />,
               )}
             />
@@ -158,17 +146,17 @@ function App() {
                 workspace.showRouteLoading,
                 <FundsPage
                   search={workspace.search}
-                  funds={workspace.effectiveFunds!}
+                  funds={workspace.effectiveFunds ?? []}
                   suggestions={workspace.effectiveFundSuggestions}
                   onSearchChange={workspace.handleSearch}
                   onAddToWatchlist={(fund) => void workspace.handleAddWatchlistFromFunds(fund)}
                   watchlistPickerFundCode={workspace.pendingWatchlistSelection?.code ?? null}
-                  watchlistPickerGroups={workspace.pendingWatchlistGroups}
+                  watchlistPickerGroup={workspace.pendingWatchlistGroup}
                   watchlistGroupOptions={workspace.watchlistGroupOrder}
-                  onToggleWatchlistGroup={workspace.togglePendingWatchlistGroup}
+                  onSelectWatchlistGroup={workspace.selectPendingWatchlistGroup}
                   onCancelWatchlistPicker={() => {
                     workspace.setPendingWatchlistSelection(null)
-                    workspace.setPendingWatchlistGroups(['全部'])
+                    workspace.setPendingWatchlistGroup('全部')
                   }}
                   onConfirmWatchlistPicker={() => void workspace.confirmAddWatchlist()}
                   onSelectFund={workspace.openFundDetail}
@@ -192,24 +180,27 @@ function App() {
                     onBack={() => workspace.navigate(workspace.fundDetailBackPath)}
                     onQuickAction={(kind) => void workspace.runQuickAction(kind)}
                     watchlistPickerOpen={workspace.pendingWatchlistSelection?.code === workspace.effectiveSelectedFund.code}
-                    watchlistPickerGroups={workspace.pendingWatchlistGroups}
+                    watchlistPickerGroup={workspace.pendingWatchlistGroup}
                     watchlistGroupOptions={workspace.watchlistGroupOrder}
-                    onToggleWatchlistGroup={workspace.togglePendingWatchlistGroup}
+                    onSelectWatchlistGroup={workspace.selectPendingWatchlistGroup}
                     onCancelWatchlistPicker={() => {
                       workspace.setPendingWatchlistSelection(null)
-                      workspace.setPendingWatchlistGroups(['全部'])
+                      workspace.setPendingWatchlistGroup('全部')
                     }}
                     onConfirmWatchlistPicker={() => void workspace.confirmAddWatchlist()}
                     holdingInputOpen={workspace.pendingHoldingInput?.code === workspace.effectiveSelectedFund.code}
                     holdingFormMode={workspace.pendingHoldingInput?.mode ?? 'add'}
                     holdingAmount={workspace.pendingHoldingAmount}
                     holdingPnl={workspace.pendingHoldingPnl}
+                    holdingAmountBasis={workspace.pendingHoldingAmountBasis}
                     onHoldingAmountChange={workspace.setPendingHoldingAmount}
                     onHoldingPnlChange={workspace.setPendingHoldingPnl}
+                    onHoldingAmountBasisChange={workspace.setPendingHoldingAmountBasis}
                     onCancelHoldingInput={() => {
                       workspace.setPendingHoldingInput(null)
                       workspace.setPendingHoldingAmount('')
                       workspace.setPendingHoldingPnl('')
+                      workspace.setPendingHoldingAmountBasis('T')
                     }}
                     onConfirmHoldingInput={workspace.confirmAddHolding}
                     holdingOperationInputOpen={workspace.pendingHoldingOperationInput?.code === workspace.effectiveSelectedFund.code}
@@ -217,27 +208,20 @@ function App() {
                     holdingOperationAmount={workspace.pendingHoldingOperationAmount}
                     holdingOperationFeeRate={workspace.pendingHoldingOperationFeeRate}
                     holdingOperationShares={workspace.pendingHoldingOperationShares}
-                    holdingOperationTiming={workspace.pendingHoldingOperationTiming}
                     holdingOperationTradeDate={workspace.pendingHoldingOperationTradeDate}
+                    holdingOperationTiming={workspace.pendingHoldingOperationTiming}
                     onHoldingOperationAmountChange={workspace.setPendingHoldingOperationAmount}
                     onHoldingOperationFeeRateChange={workspace.setPendingHoldingOperationFeeRate}
                     onHoldingOperationSharesChange={workspace.setPendingHoldingOperationShares}
+                    onHoldingOperationTradeDateChange={workspace.setPendingHoldingOperationTradeDate}
                     onHoldingOperationTimingChange={workspace.setPendingHoldingOperationTiming}
-                    onHoldingOperationTradeDateChange={(value) => {
-                      workspace.setPendingHoldingOperationTradeDate(value)
-                      const now = new Date()
-                      const today = new Date(Date.now() - now.getTimezoneOffset() * 60 * 1000).toISOString().slice(0, 10)
-                      if (value === today && now.getHours() < 15 && workspace.pendingHoldingOperationTiming === 'AFTER_3PM') {
-                        workspace.setPendingHoldingOperationTiming('BEFORE_3PM')
-                      }
-                    }}
                     onCancelHoldingOperation={() => {
                       workspace.setPendingHoldingOperationInput(null)
                       workspace.setPendingHoldingOperationAmount('')
                       workspace.setPendingHoldingOperationFeeRate('0')
                       workspace.setPendingHoldingOperationShares('')
-                      workspace.setPendingHoldingOperationTiming('AFTER_3PM')
                       workspace.setPendingHoldingOperationTradeDate(new Date(Date.now() - new Date().getTimezoneOffset() * 60 * 1000).toISOString().slice(0, 10))
+                      workspace.setPendingHoldingOperationTiming('BEFORE_3PM')
                     }}
                     onConfirmHoldingOperation={() => void workspace.confirmHoldingOperation()}
                     sipPlanExists={workspace.sipPlanCodeSet.has(workspace.effectiveSelectedFund.code)}
@@ -274,35 +258,43 @@ function App() {
                 Boolean(workspace.holdingsOverview),
                 workspace.isRouteLoading,
                 workspace.showRouteLoading,
-                <HoldingsPage overview={workspace.holdingsOverview!} onOpenFund={workspace.openFundDetail} />,
+                <HoldingsPage
+                  overview={workspace.holdingsOverview ?? { totalMarketValue: 0, items: [] }}
+                  onOpenFund={workspace.openFundDetail}
+                />,
               )}
             />
             <Route
-              path="/portfolio"
+              path="/watchlist"
               element={renderRouteContent(
                 Boolean(workspace.data.watchlist),
                 workspace.isRouteLoading,
                 workspace.showRouteLoading,
                 <PortfolioPage
-                  watchlist={workspace.data.watchlist!}
+                  watchlist={workspace.data.watchlist ?? []}
+                  groupOptions={workspace.watchlistGroupOrder}
                   groupSelections={workspace.watchlistGroups}
                   onAssignGroup={workspace.assignWatchlistGroup}
+                  onCreateGroup={(name) => workspace.createWatchlistGroup(name)}
                   onOpenFund={workspace.openFundDetail}
                   onRemoveFund={(code) => workspace.handleRemoveWatchlist(code)}
                 />,
               )}
             />
             <Route
-              path="/automation"
+              path="/sip"
               element={renderRouteContent(
                 Boolean(workspace.effectiveSipPlans),
                 workspace.isRouteLoading,
                 workspace.showRouteLoading,
-                <AutomationPage sipPlans={workspace.effectiveSipPlans!} onOpenPlan={(sipPlanId) => workspace.navigate(`/automation/${sipPlanId}`)} />,
+                <AutomationPage
+                  sipPlans={workspace.effectiveSipPlans ?? []}
+                  onOpenPlan={(sipPlanId) => workspace.navigate(`/sip/${sipPlanId}`)}
+                />,
               )}
             />
             <Route
-              path="/automation/:sipPlanId"
+              path="/sip/:sipPlanId"
               element={renderRouteContent(
                 Boolean(workspace.effectiveSipPlans && workspace.routeSipPlanId && workspace.effectiveSipPlans.find((plan) => plan.id === workspace.routeSipPlanId)),
                 workspace.isRouteLoading,
@@ -314,7 +306,7 @@ function App() {
                         <SipPlanDetailPage
                           plan={matchedPlan}
                           records={workspace.sipPlanRecords}
-                          onBack={() => workspace.navigate('/automation')}
+                          onBack={() => workspace.navigate('/sip')}
                           onEditPlan={workspace.handleEditSipPlan}
                           onTogglePlan={workspace.handleToggleSipPlan}
                           onStopPlan={workspace.handleStopSipPlan}

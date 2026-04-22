@@ -41,6 +41,9 @@ public class RedisTokenService implements TokenService {
         this.objectMapper = objectMapper;
     }
 
+    /**
+     * 判断是否sue。
+     */
     @Override
     public IssuedTokens issue(UserEntity user) {
         Instant accessExpiry = clock.instant().plus(authProperties.getAccessTokenTtlMinutes(), ChronoUnit.MINUTES);
@@ -63,6 +66,9 @@ public class RedisTokenService implements TokenService {
         return new IssuedTokens(accessToken, refreshToken, authProperties.getAccessTokenTtlMinutes() * 60L);
     }
 
+    /**
+     * 解析访问令牌。
+     */
     @Override
     public Optional<CurrentUser> resolveAccessToken(String token) {
         return find(accessKey(token))
@@ -70,6 +76,9 @@ public class RedisTokenService implements TokenService {
             .map(session -> new CurrentUser(session.userId(), session.displayName(), session.username()));
     }
 
+    /**
+     * 返回refresh结果。
+     */
     @Override
     public Optional<IssuedTokens> refresh(String token) {
         Optional<StoredSession> session = find(refreshKey(token))
@@ -88,6 +97,9 @@ public class RedisTokenService implements TokenService {
         return Optional.of(issue(user));
     }
 
+    /**
+     * 撤销访问令牌。
+     */
     @Override
     public void revokeAccessToken(String token) {
         find(accessKey(token)).ifPresent(session -> {
@@ -97,6 +109,9 @@ public class RedisTokenService implements TokenService {
         });
     }
 
+    /**
+     * 返回find结果。
+     */
     private Optional<StoredSession> find(String key) {
         String raw = redisTemplate.opsForValue().get(key);
         if (raw == null || raw.isBlank()) {
@@ -111,6 +126,9 @@ public class RedisTokenService implements TokenService {
         }
     }
 
+    /**
+     * 执行save流程。
+     */
     private void save(String key, StoredSession session, Duration ttl) {
         try {
             redisTemplate.opsForValue().set(key, objectMapper.writeValueAsString(session), ttl);
@@ -119,10 +137,16 @@ public class RedisTokenService implements TokenService {
         }
     }
 
+    /**
+     * 返回accessKey结果。
+     */
     private String accessKey(String token) {
         return ACCESS_PREFIX + token;
     }
 
+    /**
+     * 刷新key。
+     */
     private String refreshKey(String token) {
         return REFRESH_PREFIX + token;
     }

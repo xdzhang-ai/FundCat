@@ -1,6 +1,6 @@
 /** 基金详情页模块类型定义，统一页面和子组件共享的 props 结构。 */
 import type { FundDetail, HoldingInsight, PaperOrder, SipPlan } from '@fundcat/contracts'
-import type { FundOperationHistoryItem, WatchlistGroup } from '../../../common/appTypes'
+import type { FundOperationHistoryItem, PendingHoldingOperationTiming, WatchlistGroup } from '../../../common/appTypes'
 
 export type FundDetailPageProps = {
   orders: PaperOrder[]
@@ -12,17 +12,19 @@ export type FundDetailPageProps = {
   onBack: () => void
   onQuickAction: (kind: 'watchlist' | 'holding' | 'editHolding' | 'sip' | 'buy' | 'sell') => void
   watchlistPickerOpen: boolean
-  watchlistPickerGroups: WatchlistGroup[]
+  watchlistPickerGroup: WatchlistGroup
   watchlistGroupOptions: WatchlistGroup[]
-  onToggleWatchlistGroup: (group: WatchlistGroup) => void
+  onSelectWatchlistGroup: (group: WatchlistGroup) => void
   onCancelWatchlistPicker: () => void
   onConfirmWatchlistPicker: () => void
   holdingInputOpen: boolean
   holdingFormMode: 'add' | 'edit'
   holdingAmount: string
   holdingPnl: string
+  holdingAmountBasis: 'T_MINUS_1' | 'T'
   onHoldingAmountChange: (value: string) => void
   onHoldingPnlChange: (value: string) => void
+  onHoldingAmountBasisChange: (value: 'T_MINUS_1' | 'T') => void
   onCancelHoldingInput: () => void
   onConfirmHoldingInput: () => void
   holdingOperationInputOpen: boolean
@@ -30,13 +32,13 @@ export type FundDetailPageProps = {
   holdingOperationAmount: string
   holdingOperationFeeRate: string
   holdingOperationShares: string
-  holdingOperationTiming: 'BEFORE_3PM' | 'AFTER_3PM'
   holdingOperationTradeDate: string
+  holdingOperationTiming: PendingHoldingOperationTiming
   onHoldingOperationAmountChange: (value: string) => void
   onHoldingOperationFeeRateChange: (value: string) => void
   onHoldingOperationSharesChange: (value: string) => void
-  onHoldingOperationTimingChange: (value: 'BEFORE_3PM' | 'AFTER_3PM') => void
   onHoldingOperationTradeDateChange: (value: string) => void
+  onHoldingOperationTimingChange: (value: PendingHoldingOperationTiming) => void
   onCancelHoldingOperation: () => void
   onConfirmHoldingOperation: () => void
   sipPlanExists: boolean

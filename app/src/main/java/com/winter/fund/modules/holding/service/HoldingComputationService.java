@@ -11,6 +11,9 @@ import org.springframework.stereotype.Service;
 @Service
 public class HoldingComputationService {
 
+    /**
+     * 重建from金额。
+     */
     public HoldingState rebuildFromAmount(double amount, double holdingPnl, double nav) {
         if (nav <= 0) {
             throw new IllegalArgumentException("净值必须大于 0");
@@ -24,6 +27,9 @@ public class HoldingComputationService {
         return new HoldingState(shares, averageCost);
     }
 
+    /**
+     * 应用买入。
+     */
     public HoldingState applyBuy(HoldingState base, double amount, double nav, double feeRate) {
         validateNav(nav);
         validateFeeRate(feeRate);
@@ -37,6 +43,9 @@ public class HoldingComputationService {
         return new HoldingState(totalShares, round(totalCost / totalShares, 4));
     }
 
+    /**
+     * 应用卖出。
+     */
     public SellResult applySell(HoldingState base, double shares, double nav, double feeRate) {
         validateNav(nav);
         validateFeeRate(feeRate);
@@ -56,6 +65,9 @@ public class HoldingComputationService {
         return new SellResult(next, grossAmount, round(grossAmount - feeAmount, 2), feeAmount);
     }
 
+    /**
+     * 获取当前用户信息metrics。
+     */
     public HoldingMetrics metrics(HoldingState state, double nav, double previousNav, double totalMarketValue) {
         validateNav(nav);
         double marketValue = round(state.shares() * nav, 2);
@@ -67,24 +79,39 @@ public class HoldingComputationService {
         return new HoldingMetrics(marketValue, holdingPnl, holdingPnlRate, dailyPnl, allocation);
     }
 
+    /**
+     * 执行validateNav流程。
+     */
     private void validateNav(double nav) {
         if (nav <= 0) {
             throw new IllegalArgumentException("净值必须大于 0");
         }
     }
 
+    /**
+     * 执行validateFeeRate流程。
+     */
     private void validateFeeRate(double feeRate) {
         if (feeRate < 0 || feeRate > 1) {
             throw new IllegalArgumentException("费率必须在 0 到 1 之间");
         }
     }
 
+    /**
+     * 返回round结果。
+     */
     private double round(double value, int scale) {
         return BigDecimal.valueOf(value).setScale(scale, RoundingMode.HALF_UP).doubleValue();
     }
 
+    /**
+     * 返回HoldingState结果。
+     */
     public record HoldingState(double shares, double averageCost) {
 
+        /**
+         * 转换为tal成本。
+         */
         public double totalCost() {
             return BigDecimal.valueOf(shares)
                 .multiply(BigDecimal.valueOf(averageCost))
@@ -93,9 +120,15 @@ public class HoldingComputationService {
         }
     }
 
+    /**
+     * 返回SellResult结果。
+     */
     public record SellResult(HoldingState state, double grossAmount, double netAmount, double feeAmount) {
     }
 
+    /**
+     * 返回HoldingMetrics结果。
+     */
     public record HoldingMetrics(double marketValue, double holdingPnl, double holdingPnlRate, double dailyPnl, double allocation) {
     }
 }

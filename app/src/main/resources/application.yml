@@ -14,6 +14,10 @@ spring:
     properties:
       hibernate:
         format_sql: true
+        jdbc:
+          batch_size: ${FUNDCAT_PERSISTENCE_BATCH_SIZE:100}
+        order_inserts: true
+        order_updates: true
   flyway:
     enabled: true
   h2:
@@ -63,6 +67,13 @@ fundcat:
     nav-poll-end: "23:59"
     nav-backup-poll-start: "08:00"
     nav-backup-poll-end: "10:00"
+    akshare-bridge:
+      enabled: ${AKSHARE_BRIDGE_ENABLED:true}
+      base-url: ${AKSHARE_BRIDGE_BASE_URL:http://127.0.0.1:8000}
+      connect-timeout: 5s
+      read-timeout: 15s
+  persistence:
+    batch-size: ${FUNDCAT_PERSISTENCE_BATCH_SIZE:100}
 
 logging:
   file:

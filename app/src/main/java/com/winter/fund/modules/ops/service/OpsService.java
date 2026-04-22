@@ -5,10 +5,11 @@ package com.winter.fund.modules.ops.service;
  */
 
 import com.winter.fund.modules.ops.model.FeatureFlagEntity;
+import com.winter.fund.modules.ops.model.JobRunEntity;
 import com.winter.fund.modules.ops.model.OpsDtos;
 import com.winter.fund.modules.ops.repository.FeatureFlagRepository;
+import com.winter.fund.modules.ops.repository.JobRunRepository;
 import com.winter.fund.common.exception.NotFoundException;
-import com.winter.fund.infrastructure.marketdata.FundMarketDataProvider;
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,17 +21,26 @@ public class OpsService {
     private static final Logger log = LoggerFactory.getLogger(OpsService.class);
 
     private final FeatureFlagRepository featureFlagRepository;
-    private final List<FundMarketDataProvider> providers;
+    private final JobRunRepository jobRunRepository;
 
-    public OpsService(FeatureFlagRepository featureFlagRepository, List<FundMarketDataProvider> providers) {
+    public OpsService(
+        FeatureFlagRepository featureFlagRepository,
+        JobRunRepository jobRunRepository
+    ) {
         this.featureFlagRepository = featureFlagRepository;
-        this.providers = providers;
+        this.jobRunRepository = jobRunRepository;
     }
 
+    /**
+     * 获取summary。
+     */
     public OpsDtos.OpsSummaryResponse getSummary() {
         return new OpsDtos.OpsSummaryResponse(getFeatureFlags(), getProviders());
     }
 
+    /**
+     * 获取特性开关列表。
+     */
     public List<OpsDtos.FeatureFlagResponse> getFeatureFlags() {
         return featureFlagRepository.findAllByOrderByCreatedAtAsc().stream()
             .map(flag -> new OpsDtos.FeatureFlagResponse(
@@ -44,12 +54,18 @@ public class OpsService {
             .toList();
     }
 
+    /**
+     * 判断是否enabled。
+     */
     public boolean isEnabled(String code) {
         return featureFlagRepository.findByCode(code)
             .map(FeatureFlagEntity::isEnabled)
             .orElse(false);
     }
 
+    /**
+     * 转换为ggle。
+     */
     public OpsDtos.FeatureFlagResponse toggle(String code, boolean enabled) {
         log.info("Toggling feature flag, code={}, enabled={}", code, enabled);
         FeatureFlagEntity flag = featureFlagRepository.findByCode(code)
@@ -67,9 +83,42 @@ public class OpsService {
         );
     }
 
+    /**
+     * 获取提供方列表。
+     */
     public List<OpsDtos.ProviderStatusResponse> getProviders() {
-        return providers.stream()
-            .map(provider -> new OpsDtos.ProviderStatusResponse(provider.providerKey(), provider.status(), provider.notes()))
-            .toList();
+        return List.of(new OpsDtos.ProviderStatusResponse(
+            "python-fund-data-service",
+            "managed-via-python",
+            "Fund nav ingestion is produced by the Python data service and consumed in Java through ready events."
+        ));
+    }
+
+    /**
+     * 获取最近任务运行记录。
+     */
+    public List<OpsDtos.JobRunResponse> getRecentJobRuns() {
+        return jobRunRepository.findTop50ByOrderByStartedAtDesc().stream().map(this::toJobRunResponse).toList();
+    }
+
+    private OpsDtos.JobRunResponse toJobRunResponse(JobRunEntity entity) {
+        return new OpsDtos.JobRunResponse(
+            entity.getId(),
+            entity.getJobCode(),
+            entity.getJobSource(),
+            entity.getJobType(),
+            entity.getRunKey(),
+            entity.getStatus(),
+            entity.getPayloadSummary(),
+            entity.getStatsTotal(),
+            entity.getStatsSuccess(),
+            entity.getStatsFailed(),
+            entity.getStatsSkipped(),
+            entity.getStartedAt(),
+            entity.getFinishedAt(),
+            entity.getDurationMs(),
+            entity.getAttemptCount(),
+            entity.getErrorMessage()
+        );
     }
 }

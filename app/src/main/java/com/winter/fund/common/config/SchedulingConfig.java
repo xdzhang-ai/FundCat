@@ -18,6 +18,9 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @EnableSchedulerLock(defaultLockAtMostFor = "PT10M")
 public class SchedulingConfig {
 
+    /**
+     * 返回lockProvider结果。
+     */
     @Bean
     public LockProvider lockProvider(DataSource dataSource) {
         return new JdbcTemplateLockProvider(

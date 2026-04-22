@@ -3,8 +3,7 @@ import type { FundCard } from '@fundcat/contracts'
 import { Search } from 'lucide-react'
 import { SectionCard } from '../../../common/components/SectionCard'
 import { formatSignedPercent } from '../../../common/components/WebUi'
-
-type WatchlistGroup = '全部' | '成长进攻' | '稳健配置' | '行业主题'
+import type { WatchlistGroup } from '../../../common/appTypes'
 
 export function FundsPage({
   search,
@@ -13,9 +12,9 @@ export function FundsPage({
   onSearchChange,
   onAddToWatchlist,
   watchlistPickerFundCode,
-  watchlistPickerGroups,
+  watchlistPickerGroup,
   watchlistGroupOptions,
-  onToggleWatchlistGroup,
+  onSelectWatchlistGroup,
   onCancelWatchlistPicker,
   onConfirmWatchlistPicker,
   onSelectFund,
@@ -26,9 +25,9 @@ export function FundsPage({
   onSearchChange: (value: string) => void
   onAddToWatchlist: (fund: FundCard) => void
   watchlistPickerFundCode: string | null
-  watchlistPickerGroups: WatchlistGroup[]
+  watchlistPickerGroup: WatchlistGroup
   watchlistGroupOptions: WatchlistGroup[]
-  onToggleWatchlistGroup: (group: WatchlistGroup) => void
+  onSelectWatchlistGroup: (group: WatchlistGroup) => void
   onCancelWatchlistPicker: () => void
   onConfirmWatchlistPicker: () => void
   onSelectFund: (code: string) => void
@@ -44,6 +43,7 @@ export function FundsPage({
           <label className="flex items-center gap-2 rounded-full border border-white/10 bg-slate-950/50 px-4 py-2 text-sm text-slate-300">
             <Search className="h-4 w-4" />
             <input
+              data-testid="fund-search-input"
               value={search}
               onChange={(event) => onSearchChange(event.target.value)}
               placeholder="输入基金代码 / 名称搜索"
@@ -56,9 +56,10 @@ export function FundsPage({
               {suggestions.length > 0 ? (
                 <div className="max-h-80 overflow-y-auto py-2">
                   {suggestions.map((fund) => (
-                    <div key={fund.code} className="flex items-start gap-2 px-2 py-1">
+                    <div key={fund.code} data-testid={`fund-search-result-${fund.code}`} className="flex items-start gap-2 px-2 py-1">
                       <div className="relative shrink-0">
                         <button
+                          data-testid={`fund-search-watchlist-${fund.code}`}
                           type="button"
                           onClick={() => onAddToWatchlist(fund)}
                           disabled={fund.watchlisted}
@@ -75,23 +76,19 @@ export function FundsPage({
                           <div className="absolute left-[calc(100%+0.6rem)] top-0 z-30 w-72 rounded-[1.25rem] border border-sky-400/20 bg-slate-950/98 p-3 shadow-[0_18px_40px_rgba(15,23,42,0.45)] backdrop-blur-xl">
                             <p className="text-xs uppercase tracking-[0.2em] text-sky-300">加入自选分组</p>
                             <p className="mt-1 text-sm text-white">{fund.name}</p>
-                            <p className="mt-1 text-xs text-slate-400">默认勾选“全部”，最多只能勾选 2 个。</p>
+                            <p className="mt-1 text-xs text-slate-400">每只基金仅保留一个用户分组。</p>
                             <div className="mt-3 space-y-2">
                               {watchlistGroupOptions.map((group) => {
-                                const checked = watchlistPickerGroups.includes(group)
-                                const disabled = group !== '全部' && !checked && watchlistPickerGroups.length >= 2
+                                const checked = watchlistPickerGroup === group
                                 return (
                                   <button
                                     key={group}
                                     type="button"
-                                    disabled={disabled}
-                                    onClick={() => onToggleWatchlistGroup(group)}
+                                    onClick={() => onSelectWatchlistGroup(group)}
                                     className={`flex w-full items-center justify-between rounded-xl border px-3 py-2 text-sm transition ${
                                       checked
                                         ? 'border-sky-300/45 bg-sky-400/14 text-white'
-                                        : disabled
-                                          ? 'cursor-not-allowed border-white/8 bg-white/5 text-slate-500'
-                                          : 'border-white/10 bg-white/5 text-slate-200 hover:border-white/20 hover:text-white'
+                                        : 'border-white/10 bg-white/5 text-slate-200 hover:border-white/20 hover:text-white'
                                     }`}
                                   >
                                     <span>{group}</span>
@@ -126,6 +123,7 @@ export function FundsPage({
                         ) : null}
                       </div>
                       <button
+                        data-testid={`fund-search-select-${fund.code}`}
                         type="button"
                         onClick={() => {
                           onSearchChange('')
@@ -141,10 +139,10 @@ export function FundsPage({
                             {fund.name}
                           </p>
                           <p
-                            title={`${fund.code} · ${fund.category}`}
+                            title={fund.code}
                             className="mt-1 truncate whitespace-nowrap text-slate-500 [font-size:clamp(0.65rem,0.85vw,0.75rem)]"
                           >
-                            {fund.code} · {fund.category}
+                            {fund.code}
                           </p>
                         </div>
                         <p
@@ -177,6 +175,7 @@ export function FundsPage({
 
           return (
             <button
+              data-testid={`fund-card-${fund.code}`}
               key={fund.code}
               onClick={() => onSelectFund(fund.code)}
               className="rounded-[1.5rem] border border-white/8 bg-white/5 px-4 py-4 text-left transition hover:border-white/20"
@@ -185,9 +184,8 @@ export function FundsPage({
                 <div>
                   <p className="font-[var(--fc-font-display)] text-xl text-white">{fund.name}</p>
                   <p className="mt-2 text-sm text-slate-400">
-                    {fund.code} · {fund.category}
+                    {fund.code}
                   </p>
-                  <p className="mt-1 text-xs text-slate-500">跟踪基准 {fund.benchmark}</p>
                 </div>
                 <div className="text-right">
                   <p className={`font-[var(--fc-font-display)] text-2xl ${fund.estimatedGrowth >= 0 ? 'text-emerald-300' : 'text-orange-300'}`}>

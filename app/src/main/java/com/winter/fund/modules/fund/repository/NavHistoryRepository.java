@@ -14,9 +14,13 @@ public interface NavHistoryRepository extends JpaRepository<NavHistoryEntity, St
 
     List<NavHistoryEntity> findTop30ByFundCodeOrderByTradeDateDesc(String fundCode);
 
+    Optional<NavHistoryEntity> findTopByFundCodeOrderByTradeDateDesc(String fundCode);
+
     List<NavHistoryEntity> findByFundCodeOrderByTradeDateAsc(String fundCode);
 
     List<NavHistoryEntity> findByFundCodeAndTradeDateBetweenOrderByTradeDateAsc(String fundCode, LocalDate start, LocalDate end);
+
+    List<NavHistoryEntity> findByTradeDateOrderByFundCodeAsc(LocalDate tradeDate);
 
     Optional<NavHistoryEntity> findTopByFundCodeAndTradeDateLessThanEqualOrderByTradeDateDesc(String fundCode, LocalDate tradeDate);
 

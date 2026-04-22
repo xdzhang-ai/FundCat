@@ -38,7 +38,7 @@ type CreateSipPlanActionsOptions = {
   setPendingSipInput: Dispatch<SetStateAction<PendingSipInput | null>>
   setPendingSipMonthDay: Dispatch<SetStateAction<string>>
   setPendingSipWeekday: Dispatch<SetStateAction<SipWeekdayInput>>
-  setPendingWatchlistGroups: Dispatch<SetStateAction<WatchlistGroup[]>>
+  setPendingWatchlistGroup: Dispatch<SetStateAction<WatchlistGroup>>
   setPendingWatchlistSelection: Dispatch<SetStateAction<PendingWatchlistSelection | null>>
 }
 
@@ -60,18 +60,18 @@ export function createSipPlanActions({
   setPendingSipInput,
   setPendingSipMonthDay,
   setPendingSipWeekday,
-  setPendingWatchlistGroups,
+  setPendingWatchlistGroup,
   setPendingWatchlistSelection,
 }: CreateSipPlanActionsOptions) {
   function openSipInput(fund: Pick<FundCard, 'code' | 'name'>) {
     const existingPlan = findCurrentSipPlanByFundCode(fund.code, getData().sipPlans)
     if (existingPlan) {
-      navigateToPath(`/automation/${existingPlan.id}`)
+      navigateToPath(`/sip/${existingPlan.id}`)
       return
     }
     const defaults = createDefaultWorkspaceInputs()
     setPendingWatchlistSelection(null)
-    setPendingWatchlistGroups(defaults.watchlistGroups)
+    setPendingWatchlistGroup(defaults.watchlistGroup)
     setPendingHoldingInput(null)
     setPendingHoldingAmount(defaults.holdingAmount)
     setPendingHoldingPnl(defaults.holdingPnl)
@@ -131,7 +131,7 @@ export function createSipPlanActions({
       setActionMessage('当前基金还没有定投计划')
       return
     }
-    navigateToPath(`/automation/${plan.id}`)
+    navigateToPath(`/sip/${plan.id}`)
   }
 
   async function handleEditSipPlan(

@@ -12,7 +12,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "user_fund_daily_profit_snapshots")
+@Table(name = "holding_daily_snapshots")
 public class UserFundDailyProfitSnapshotEntity {
 
     @Id
@@ -51,98 +51,170 @@ public class UserFundDailyProfitSnapshotEntity {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
+    /**
+     * 获取id。
+     */
     public String getId() {
         return id;
     }
 
+    /**
+     * 设置id。
+     */
     public void setId(String id) {
         this.id = id;
     }
 
+    /**
+     * 获取用户id。
+     */
     public String getUserId() {
         return userId;
     }
 
+    /**
+     * 设置用户id。
+     */
     public void setUserId(String userId) {
         this.userId = userId;
     }
 
+    /**
+     * 获取基金code。
+     */
     public String getFundCode() {
         return fundCode;
     }
 
+    /**
+     * 设置基金code。
+     */
     public void setFundCode(String fundCode) {
         this.fundCode = fundCode;
     }
 
+    /**
+     * 获取trade日期。
+     */
     public LocalDate getTradeDate() {
         return tradeDate;
     }
 
+    /**
+     * 设置trade日期。
+     */
     public void setTradeDate(LocalDate tradeDate) {
         this.tradeDate = tradeDate;
     }
 
+    /**
+     * 获取shares。
+     */
     public double getShares() {
         return shares;
     }
 
+    /**
+     * 设置shares。
+     */
     public void setShares(double shares) {
         this.shares = shares;
     }
 
+    /**
+     * 获取average成本。
+     */
     public double getAverageCost() {
         return averageCost;
     }
 
+    /**
+     * 设置average成本。
+     */
     public void setAverageCost(double averageCost) {
         this.averageCost = averageCost;
     }
 
+    /**
+     * 获取净值。
+     */
     public double getNav() {
         return nav;
     }
 
+    /**
+     * 设置净值。
+     */
     public void setNav(double nav) {
         this.nav = nav;
     }
 
+    /**
+     * 获取市场value。
+     */
     public double getMarketValue() {
         return marketValue;
     }
 
+    /**
+     * 设置市场value。
+     */
     public void setMarketValue(double marketValue) {
         this.marketValue = marketValue;
     }
 
+    /**
+     * 获取每日pnl。
+     */
     public double getDailyPnl() {
         return dailyPnl;
     }
 
+    /**
+     * 设置每日pnl。
+     */
     public void setDailyPnl(double dailyPnl) {
         this.dailyPnl = dailyPnl;
     }
 
+    /**
+     * 获取totalpnl。
+     */
     public double getTotalPnl() {
         return totalPnl;
     }
 
+    /**
+     * 设置totalpnl。
+     */
     public void setTotalPnl(double totalPnl) {
         this.totalPnl = totalPnl;
     }
 
+    /**
+     * 获取totalpnlrate。
+     */
     public double getTotalPnlRate() {
         return totalPnlRate;
     }
 
+    /**
+     * 设置totalpnlrate。
+     */
     public void setTotalPnlRate(double totalPnlRate) {
         this.totalPnlRate = totalPnlRate;
     }
 
+    /**
+     * 获取updatedat。
+     */
     public LocalDateTime getUpdatedAt() {
         return updatedAt;
     }
 
+    /**
+     * 设置updatedat。
+     */
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
     }

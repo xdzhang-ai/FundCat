@@ -1,42 +1,13 @@
 /** 基金展示辅助函数，集中处理金额格式化、区间走势和持仓洞察计算。 */
 import type {
-  FundCard,
   FundDetail,
-  HoldingLot,
   PaperOrder,
-  PortfolioSummary,
   SipPlan,
   TrendPoint,
 } from '@fundcat/contracts'
 import type { TrendMarker } from '../charts/FundTrendChart'
 
 export type FundRangeKey = '7d' | '1m' | '3m' | '6m' | '1y' | '3y'
-
-export type AggregatedHolding = {
-  fundCode: string
-  fundName: string
-  shares: number
-  averageCost: number
-  currentValue: number
-  pnl: number
-  allocation: number
-  lots: HoldingLot[]
-  portfolioNames: string[]
-}
-
-export type HoldingInsight = {
-  amountHeld: number
-  shares: number
-  allocation: number
-  holdingPnl: number
-  holdingReturnRate: number
-  averageCost: number
-  todayPnl: number | null
-  yesterdayPnl: number
-  holdingDays: number
-  oneYearReturn: number
-  dayChange: number | null
-}
 
 export function formatAmount(value: number) {
   return value.toLocaleString('zh-CN', {
@@ -54,106 +25,6 @@ export function formatCompactPercent(value: number | null) {
     return '--'
   }
   return `${value >= 0 ? '+' : ''}${value.toFixed(2)}%`
-}
-
-export function aggregateHoldings(portfolios: PortfolioSummary[], funds: FundCard[]) {
-  const fundMap = new Map(funds.map((fund) => [fund.code, fund]))
-  const totalValue = portfolios
-    .flatMap((portfolio) => portfolio.holdings)
-    .reduce((sum, holding) => sum + resolveHoldingValue(holding, fundMap.get(holding.fundCode)), 0)
-
-  const grouped = new Map<string, AggregatedHolding>()
-
-  portfolios.forEach((portfolio) => {
-    portfolio.holdings.forEach((holding) => {
-      const currentFund = fundMap.get(holding.fundCode)
-      const currentValue = resolveHoldingValue(holding, currentFund)
-      const costBasis = holding.shares * holding.averageCost
-      const existing = grouped.get(holding.fundCode)
-      if (!existing) {
-        grouped.set(holding.fundCode, {
-          fundCode: holding.fundCode,
-          fundName: holding.fundName,
-          shares: holding.shares,
-          averageCost: holding.averageCost,
-          currentValue,
-          pnl: currentValue - costBasis,
-          allocation: 0,
-          lots: [holding],
-          portfolioNames: [portfolio.name],
-        })
-        return
-      }
-      const nextShares = existing.shares + holding.shares
-      const nextCostBasis = (existing.averageCost * existing.shares) + costBasis
-      existing.shares = nextShares
-      existing.averageCost = nextShares === 0 ? 0 : nextCostBasis / nextShares
-      existing.currentValue += currentValue
-      existing.pnl = existing.currentValue - nextCostBasis
-      existing.lots.push(holding)
-      if (!existing.portfolioNames.includes(portfolio.name)) {
-        existing.portfolioNames.push(portfolio.name)
-      }
-    })
-  })
-
-  return Array.from(grouped.values())
-    .map((holding) => ({
-      ...holding,
-      allocation: totalValue === 0 ? 0 : holding.currentValue / totalValue,
-    }))
-    .sort((left, right) => right.currentValue - left.currentValue)
-}
-
-function resolveHoldingValue(holding: HoldingLot, fund?: FundCard) {
-  const currentNav = fund?.estimatedNav ?? (holding.shares === 0 ? 0 : holding.currentValue / holding.shares)
-  return holding.shares * currentNav
-}
-
-export function buildHoldingInsight(
-  portfolios: PortfolioSummary[],
-  funds: FundCard[],
-  detail: FundDetail,
-): HoldingInsight | null {
-  const currentHolding = aggregateHoldings(portfolios, funds).find((holding) => holding.fundCode === detail.code)
-  if (!currentHolding) {
-    return null
-  }
-
-  const holdingReturnRate =
-    currentHolding.shares === 0 || currentHolding.averageCost === 0
-      ? 0
-      : ((detail.estimatedNav - currentHolding.averageCost) / currentHolding.averageCost) * 100
-  const baseSeries = detail.navHistory
-  const previousPoint = baseSeries.at(-2)
-  const currentConfirmedNav = detail.unitNav
-  const previousNav = previousPoint?.value ?? currentConfirmedNav
-  const yesterdayPnl = currentHolding.shares * (currentConfirmedNav - previousNav)
-  const todayPnl = detail.referenceOnly ? currentHolding.shares * (detail.estimatedNav - currentConfirmedNav) : null
-  const firstUpdatedAt = currentHolding.lots
-    .map((lot) => new Date(lot.updatedAt))
-    .filter((date) => !Number.isNaN(date.getTime()))
-    .sort((left, right) => left.getTime() - right.getTime())[0]
-  const today = new Date()
-  const holdingDays = firstUpdatedAt
-    ? Math.max(1, Math.floor((today.getTime() - firstUpdatedAt.getTime()) / (24 * 3600 * 1000)))
-    : 0
-  const yearRange = filterRange(detail.referenceOnly ? detail.estimateHistory : detail.navHistory, '1y')
-  const oneYearReturn = calculateRangeReturn(yearRange)
-
-  return {
-    amountHeld: currentHolding.currentValue,
-    shares: currentHolding.shares,
-    allocation: currentHolding.allocation * 100,
-    holdingPnl: currentHolding.pnl,
-    holdingReturnRate,
-    averageCost: currentHolding.averageCost,
-    todayPnl,
-    yesterdayPnl,
-    holdingDays,
-    oneYearReturn,
-    dayChange: detail.referenceOnly ? detail.estimatedGrowth : null,
-  }
 }
 
 export function rangeOptions(): Array<{ key: FundRangeKey; label: string }> {

@@ -6,7 +6,7 @@ package com.winter.fund.modules.holding;
 
 import com.winter.fund.modules.auth.model.CurrentUser;
 import com.winter.fund.modules.holding.model.HoldingDtos;
-import com.winter.fund.modules.holding.model.UserFundHoldingEntity;
+import com.winter.fund.modules.holding.model.UserFundDailyProfitSnapshotEntity;
 import com.winter.fund.modules.holding.service.HoldingService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -34,6 +34,9 @@ public class HoldingController {
         this.holdingService = holdingService;
     }
 
+    /**
+     * 返回overview结果。
+     */
     @GetMapping("/overview")
     @Operation(summary = "获取持仓总览", description = "返回当前用户的全部持仓汇总与列表。")
     public HoldingDtos.HoldingsOverviewResponse overview(@AuthenticationPrincipal CurrentUser currentUser) {
@@ -43,7 +46,7 @@ public class HoldingController {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     @Operation(summary = "新增持仓快照", description = "按前端传入的金额口径和收益反推份额、成本并写入当前持仓。")
-    public UserFundHoldingEntity createHolding(
+    public UserFundDailyProfitSnapshotEntity createHolding(
         @AuthenticationPrincipal CurrentUser currentUser,
         @Valid @RequestBody HoldingDtos.UpsertHoldingRequest request
     ) {
@@ -52,7 +55,7 @@ public class HoldingController {
 
     @PatchMapping("/{fundCode}")
     @Operation(summary = "修改持仓快照", description = "覆盖指定基金的当前持仓结果。")
-    public UserFundHoldingEntity updateHolding(
+    public UserFundDailyProfitSnapshotEntity updateHolding(
         @AuthenticationPrincipal CurrentUser currentUser,
         @Parameter(description = "基金代码", example = "000001") @PathVariable String fundCode,
         @Valid @RequestBody HoldingDtos.UpsertHoldingRequest request
@@ -62,7 +65,7 @@ public class HoldingController {
 
     @PostMapping("/operations")
     @ResponseStatus(HttpStatus.CREATED)
-    @Operation(summary = "补记买卖", description = "按前端传入的交易日期补记手工买卖，并基于该日期可用的确认净值立即执行。")
+    @Operation(summary = "补记买卖", description = "按前端换算后的最终成交日提交手工买卖；若该交易日确认净值尚未公布，则先进入确认中，晚间再结算为已执行。")
     public HoldingDtos.HoldingOperationResponse createOperation(
         @AuthenticationPrincipal CurrentUser currentUser,
         @Valid @RequestBody HoldingDtos.CreateHoldingOperationRequest request

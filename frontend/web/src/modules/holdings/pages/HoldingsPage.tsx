@@ -131,7 +131,7 @@ export function HoldingsPage({
         onDragEnd={handleDragEnd}
         onDragCancel={handleDragCancel}
       >
-        <div className="overflow-hidden rounded-[1.75rem] border border-white/8 bg-white/5">
+        <div data-testid="holdings-table" className="overflow-hidden rounded-[1.75rem] border border-white/8 bg-white/5">
           <div
             className="grid gap-3 border-b border-white/8 px-4 py-3 text-xs text-slate-400"
             style={{ gridTemplateColumns: columnTemplate }}
@@ -152,6 +152,7 @@ export function HoldingsPage({
           <div className="divide-y divide-white/8">
             {rows.map((row) => (
               <button
+                data-testid={`holding-row-${row.fundCode}`}
                 key={row.fundCode}
                 onClick={() => onOpenFund(row.fundCode)}
                 className="grid w-full gap-3 px-4 py-4 text-left transition hover:bg-white/5"

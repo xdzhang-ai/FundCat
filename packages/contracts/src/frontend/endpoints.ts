@@ -93,11 +93,25 @@ export const frontendApiContracts = {
       note: '自选列表接口，返回分组和已持仓状态即可。',
     },
     {
+      method: 'GET',
+      path: '/api/v1/watchlist/groups',
+      request: 'void',
+      response: 'WatchlistGroupListResponse',
+      note: '获取当前用户可用的自选分组选项。',
+    },
+    {
+      method: 'POST',
+      path: '/api/v1/watchlist/groups',
+      request: 'CreateWatchlistGroupPayload',
+      response: 'WatchlistGroupOption',
+      note: '新增自选分组，按用户维度校验重名。',
+    },
+    {
       method: 'POST',
       path: '/api/v1/watchlist',
       request: 'CreateWatchlistPayload',
       response: 'WatchlistItem',
-      note: '新增自选，允许一次写入 note 和 groups。',
+      note: '新增自选，允许一次写入 note 和 group。',
     },
     {
       method: 'PATCH',
@@ -142,13 +156,6 @@ export const frontendApiContracts = {
       request: 'CreateHoldingOperationPayload',
       response: 'HoldingOperation',
       note: '手工买入或卖出，支持近 30 天补记。',
-    },
-    {
-      method: 'GET',
-      path: '/api/v1/portfolios',
-      request: 'void',
-      response: 'PortfolioSummary[]',
-      note: '保留完整组合树接口，供更重的资产页或调试场景使用。',
     },
     {
       method: 'GET',

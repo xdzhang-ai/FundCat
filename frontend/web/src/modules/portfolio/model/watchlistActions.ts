@@ -19,8 +19,8 @@ type SetFundDetailCache = Dispatch<SetStateAction<Record<string, FundDetail>>>
 
 type CreateWatchlistActionsOptions = {
   getData: () => AppDataState
+  getPendingWatchlistGroup: () => WatchlistGroup
   getPendingWatchlistSelection: () => PendingWatchlistSelection | null
-  getPendingWatchlistGroups: () => WatchlistGroup[]
   getSelectedCode: () => string
   refreshCurrentPage: (preferredFundCode?: string) => Promise<void>
   setActionMessage: Dispatch<SetStateAction<string | null>>
@@ -35,14 +35,14 @@ type CreateWatchlistActionsOptions = {
   setPendingSipInput: Dispatch<SetStateAction<PendingSipInput | null>>
   setPendingSipMonthDay: Dispatch<SetStateAction<string>>
   setPendingSipWeekday: Dispatch<SetStateAction<SipWeekdayInput>>
-  setPendingWatchlistGroups: Dispatch<SetStateAction<WatchlistGroup[]>>
+  setPendingWatchlistGroup: Dispatch<SetStateAction<WatchlistGroup>>
   setPendingWatchlistSelection: Dispatch<SetStateAction<PendingWatchlistSelection | null>>
-  setWatchlistGroups: Dispatch<SetStateAction<Record<string, WatchlistGroup[]>>>
+  setWatchlistGroups: Dispatch<SetStateAction<Record<string, WatchlistGroup>>>
 }
 
 export function createWatchlistActions({
   getData,
-  getPendingWatchlistGroups,
+  getPendingWatchlistGroup,
   getPendingWatchlistSelection,
   getSelectedCode,
   refreshCurrentPage,
@@ -58,16 +58,20 @@ export function createWatchlistActions({
   setPendingSipInput,
   setPendingSipMonthDay,
   setPendingSipWeekday,
-  setPendingWatchlistGroups,
+  setPendingWatchlistGroup,
   setPendingWatchlistSelection,
   setWatchlistGroups,
 }: CreateWatchlistActionsOptions) {
-  function hydrateWatchlistGroups(watchlist: AppDataState['watchlist']): Record<string, WatchlistGroup[]> {
-    return Object.fromEntries((watchlist ?? []).map((item) => [item.code, item.groups?.length ? item.groups : ['全部']]))
+  function hydrateWatchlistGroups(watchlist: AppDataState['watchlist']): Record<string, WatchlistGroup> {
+    return Object.fromEntries((watchlist ?? []).map((item) => [item.code, item.group ?? '全部']))
   }
 
-  function normalizePersistedGroups(groups: WatchlistGroup[]) {
-    return groups.filter((group) => group !== '全部')
+  function hasGroupName(name: string) {
+    return (getData().watchlistGroupOptions ?? []).some((group) => group.name === name)
+  }
+
+  function normalizePersistedGroup(group: WatchlistGroup) {
+    return group === '全部' ? '全部' : group
   }
 
   function openWatchlistPicker(fund: Pick<FundCard, 'code' | 'name' | 'watchlisted'>) {
@@ -85,38 +89,24 @@ export function createWatchlistActions({
     setPendingSipMonthDay(defaults.sipMonthDay)
     setPendingSipAmount(defaults.sipAmount)
     setPendingWatchlistSelection({ code: fund.code, name: fund.name })
-    setPendingWatchlistGroups(defaults.watchlistGroups)
+    setPendingWatchlistGroup(defaults.watchlistGroup)
   }
 
-  function togglePendingWatchlistGroup(group: WatchlistGroup) {
-    if (group === '全部') {
-      return
-    }
-    setPendingWatchlistGroups((current) => {
-      if (current.includes(group)) {
-        return current.filter((item) => item !== group)
-      }
-      if (current.length >= 2) {
-        return current
-      }
-      return [...current, group]
-    })
+  function selectPendingWatchlistGroup(group: WatchlistGroup) {
+    setPendingWatchlistGroup(group)
   }
 
   function assignWatchlistGroup(codes: string[], group: Exclude<WatchlistGroup, '全部'>) {
     if (codes.length === 0) return
     const currentWatchlist = getData().watchlist ?? []
-    const hasActualChange = codes.some((code) => {
-      const currentGroups = currentWatchlist.find((item) => item.code === code)?.groups ?? []
-      return currentGroups.length !== 1 || currentGroups[0] !== group
-    })
+    const hasActualChange = codes.some((code) => currentWatchlist.find((item) => item.code === code)?.group !== group)
     if (!hasActualChange) {
       return
     }
     void workspaceApi
       .updateWatchlistGroups({
         fundCodes: codes,
-        groups: [group],
+        group,
       })
       .then((watchlist) => {
         setData((current) => ({ ...current, watchlist }))
@@ -125,6 +115,32 @@ export function createWatchlistActions({
       .catch((error) => {
         setActionMessage(error instanceof Error ? error.message : '更新自选分组失败')
       })
+  }
+
+  async function createWatchlistGroup(name: string) {
+    const normalizedName = name.trim()
+    if (!normalizedName) {
+      setActionMessage('分组名称不能为空')
+      return null
+    }
+    if (hasGroupName(normalizedName)) {
+      setActionMessage('当前用户已存在同名分组')
+      return null
+    }
+
+    try {
+      const group = await workspaceApi.createWatchlistGroup({ name: normalizedName })
+      setData((current) => ({
+        ...current,
+        watchlistGroupOptions: [...(current.watchlistGroupOptions ?? []), group],
+      }))
+      setPendingWatchlistGroup(group.name)
+      setActionMessage(`已新增分组 ${group.name}`)
+      return group
+    } catch (error) {
+      setActionMessage(error instanceof Error ? error.message : '新增分组失败')
+      return null
+    }
   }
 
   async function confirmAddWatchlist() {
@@ -136,7 +152,7 @@ export function createWatchlistActions({
       await workspaceApi.addWatchlist({
         fundCode: pending.code,
         note,
-        groups: normalizePersistedGroups(getPendingWatchlistGroups()),
+        group: normalizePersistedGroup(getPendingWatchlistGroup()),
       })
 
       setActionMessage(`已将 ${pending.name} 加入自选`)
@@ -162,7 +178,7 @@ export function createWatchlistActions({
       setData((current) => ({ ...current, watchlist }))
       setWatchlistGroups(hydrateWatchlistGroups(watchlist))
       setPendingWatchlistSelection(null)
-      setPendingWatchlistGroups(createDefaultWorkspaceInputs().watchlistGroups)
+      setPendingWatchlistGroup(createDefaultWorkspaceInputs().watchlistGroup)
     } catch (error) {
       setActionMessage(error instanceof Error ? error.message : '加入自选失败')
     }
@@ -187,7 +203,7 @@ export function createWatchlistActions({
     setData(createEmptyAppData())
     setWatchlistGroups({})
     setPendingWatchlistSelection(null)
-    setPendingWatchlistGroups(defaults.watchlistGroups)
+    setPendingWatchlistGroup(defaults.watchlistGroup)
     setPendingHoldingInput(null)
     setPendingHoldingAmount(defaults.holdingAmount)
     setPendingHoldingPnl(defaults.holdingPnl)
@@ -201,10 +217,11 @@ export function createWatchlistActions({
   return {
     assignWatchlistGroup,
     confirmAddWatchlist,
+    createWatchlistGroup,
     handleAddWatchlistFromFunds,
     handleRemoveWatchlist,
     openWatchlistPicker,
     resetWorkspaceStateAfterLogout,
-    togglePendingWatchlistGroup,
+    selectPendingWatchlistGroup,
   }
 }

@@ -11,6 +11,9 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 @Configuration
 public class MarketDataExecutorConfig {
 
+    /**
+     * 返回marketDataTaskScheduler结果。
+     */
     @Bean
     public ThreadPoolTaskScheduler marketDataTaskScheduler() {
         ThreadPoolTaskScheduler scheduler = new ThreadPoolTaskScheduler();

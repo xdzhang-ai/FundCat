@@ -101,7 +101,7 @@ export function SipPlanDetailPage({
         </div>
       }
     >
-      <div className="space-y-5">
+      <div data-testid={`sip-plan-detail-${plan.id}`} className="space-y-5">
         <div className="rounded-[1.6rem] border border-white/8 bg-white/5 px-5 py-5">
           <p className="text-xs uppercase tracking-[0.18em] text-[color:var(--fc-color-accent)]/80">计划概览</p>
           <div className="mt-4 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
@@ -158,9 +158,9 @@ export function SipPlanDetailPage({
             <span className="text-center">定投金额</span>
             <span className="text-right">状态</span>
           </div>
-          <div className="divide-y divide-white/8">
+          <div data-testid="sip-record-list" className="divide-y divide-white/8">
             {records.map((record) => (
-              <div key={record.id} className="grid grid-cols-[1.1fr_0.9fr_0.8fr] items-center gap-3 px-4 py-4">
+              <div data-testid={`sip-record-row-${record.id}`} key={record.id} className="grid grid-cols-[1.1fr_0.9fr_0.8fr] items-center gap-3 px-4 py-4">
                 <p className="text-sm text-slate-300">{record.executedOn}</p>
                 <p className="text-center font-[var(--fc-font-display)] text-lg text-white">{formatCurrency(record.amount)}</p>
                 <p className={`text-right text-sm ${recordToneClass(record.status)}`}>{record.status}</p>

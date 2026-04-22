@@ -1,15 +1,13 @@
 /** 工作台派生状态层，负责把原始接口数据整理成页面可直接消费的视图数据。 */
 import type { FundCard } from '@fundcat/contracts'
-import type { AppDataState, LocalHoldingDraft, LocalSipPlanDraft } from '../appTypes'
+import type { AppDataState, LocalSipPlanDraft } from '../appTypes'
 import { buildPartialDashboard } from '../utils/dashboard'
-import { holdingCodesFromPortfolios, mergeHoldingDraftsIntoPortfolios } from '../utils/holdings'
 import { mergeLocalSipPlanDrafts, resolveSipStatus } from '../utils/sipPlans'
 
 type BuildWorkspaceDerivedStateOptions = {
   actionMessage: string | null
   data: AppDataState
   fundSuggestions: FundCard[]
-  localHoldingDrafts: LocalHoldingDraft[]
   localSipPlanDrafts: LocalSipPlanDraft[]
 }
 
@@ -17,21 +15,16 @@ export function buildWorkspaceDerivedState({
   actionMessage,
   data,
   fundSuggestions,
-  localHoldingDrafts,
   localSipPlanDrafts,
 }: BuildWorkspaceDerivedStateOptions) {
   const featureFlags = data.featureFlags ?? data.overviewDashboard?.featureFlags ?? []
   const effectiveSipPlans = mergeLocalSipPlanDrafts(data.sipPlans, localSipPlanDrafts)
-  const effectivePortfolios = mergeHoldingDraftsIntoPortfolios(data.portfolios, localHoldingDrafts)
-  const holdingsMarketValue =
-    data.holdingsOverview?.totalMarketValue ??
-    effectivePortfolios?.reduce((sum, portfolio) => sum + portfolio.marketValue, 0) ??
-    0
+  const holdingsMarketValue = data.holdingsOverview?.totalMarketValue ?? 0
   const watchlistCodeSet = new Set((data.watchlist ?? data.overviewDashboard?.watchlist ?? []).map((item) => item.code))
   const heldCodeSet =
     data.holdingsOverview?.items?.length
       ? new Set(data.holdingsOverview.items.map((item) => item.fundCode))
-      : holdingCodesFromPortfolios(effectivePortfolios)
+      : new Set<string>()
   const sipPlanCodeSet = new Set(
     (effectiveSipPlans ?? []).filter((plan) => resolveSipStatus(plan) !== '停止').map((plan) => plan.fundCode),
   )
@@ -46,13 +39,11 @@ export function buildWorkspaceDerivedState({
   const detailDashboard = buildPartialDashboard({
     profile: data.overviewDashboard?.profile,
     featureFlags,
-    portfolios: effectivePortfolios ?? [],
     orders: data.orders ?? [],
     sipPlans: effectiveSipPlans ?? [],
   })
   const holdingsDashboard = buildPartialDashboard({
     profile: data.overviewDashboard?.profile,
-    portfolios: effectivePortfolios ?? [],
   })
   const watchlistDashboard = buildPartialDashboard({
     profile: data.overviewDashboard?.profile,
@@ -61,10 +52,7 @@ export function buildWorkspaceDerivedState({
   const automationDashboard = buildPartialDashboard({
     profile: data.overviewDashboard?.profile,
     featureFlags,
-    sipPlans: effectiveSipPlans ?? [],
-    reports: data.reports ?? [],
-    alerts: data.alerts ?? [],
-    importJobs: data.importJobs ?? [],
+    sipPlans: effectiveSipPlans ?? []
   })
   const actionMessageToneClass = actionMessage?.startsWith('已停止')
     ? 'border-red-400/20 bg-red-500/10 text-red-200'
@@ -78,7 +66,6 @@ export function buildWorkspaceDerivedState({
     detailDashboard,
     effectiveFunds,
     effectiveFundSuggestions,
-    effectivePortfolios,
     effectiveSelectedFund,
     effectiveSipPlans,
     featureFlags,

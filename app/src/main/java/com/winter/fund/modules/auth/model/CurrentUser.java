@@ -16,14 +16,23 @@ public final class CurrentUser {
         this.username = username;
     }
 
+    /**
+     * 返回id结果。
+     */
     public String id() {
         return id;
     }
 
+    /**
+     * 返回displayName结果。
+     */
     public String displayName() {
         return displayName;
     }
 
+    /**
+     * 返回username结果。
+     */
     public String username() {
         return username;
     }

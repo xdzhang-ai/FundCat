@@ -21,127 +21,80 @@ public class FundEntity {
     private String name;
 
     @Column(nullable = false)
-    private String category;
-
-    @Column(name = "risk_level", nullable = false)
-    private String riskLevel;
-
-    @Column(nullable = false)
-    private String benchmark;
-
-    @Column(name = "tag_line", nullable = false)
-    private String tagLine;
-
-    @Column(nullable = false)
     private String tags;
 
-    @Column(name = "management_fee", nullable = false)
-    private double managementFee;
-
-    @Column(name = "custody_fee", nullable = false)
-    private double custodyFee;
-
-    @Column(name = "purchase_fee", nullable = false)
-    private double purchaseFee;
-
-    @Column(nullable = false)
-    private String status;
+    @Column(name = "top_holdings", nullable = false)
+    private String topHoldings;
 
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
+    /**
+     * 获取code。
+     */
     public String getCode() {
         return code;
     }
 
+    /**
+     * 设置code。
+     */
     public void setCode(String code) {
         this.code = code;
     }
 
+    /**
+     * 获取name。
+     */
     public String getName() {
         return name;
     }
 
+    /**
+     * 设置name。
+     */
     public void setName(String name) {
         this.name = name;
     }
 
-    public String getCategory() {
-        return category;
-    }
-
-    public void setCategory(String category) {
-        this.category = category;
-    }
-
-    public String getRiskLevel() {
-        return riskLevel;
-    }
-
-    public void setRiskLevel(String riskLevel) {
-        this.riskLevel = riskLevel;
-    }
-
-    public String getBenchmark() {
-        return benchmark;
-    }
-
-    public void setBenchmark(String benchmark) {
-        this.benchmark = benchmark;
-    }
-
-    public String getTagLine() {
-        return tagLine;
-    }
-
-    public void setTagLine(String tagLine) {
-        this.tagLine = tagLine;
-    }
-
+    /**
+     * 获取tags。
+     */
     public String getTags() {
         return tags;
     }
 
+    /**
+     * 设置tags。
+     */
     public void setTags(String tags) {
         this.tags = tags;
     }
 
-    public double getManagementFee() {
-        return managementFee;
+    /**
+     * 获取topholdings。
+     */
+    public String getTopHoldings() {
+        return topHoldings;
     }
 
-    public void setManagementFee(double managementFee) {
-        this.managementFee = managementFee;
+    /**
+     * 设置topholdings。
+     */
+    public void setTopHoldings(String topHoldings) {
+        this.topHoldings = topHoldings;
     }
 
-    public double getCustodyFee() {
-        return custodyFee;
-    }
-
-    public void setCustodyFee(double custodyFee) {
-        this.custodyFee = custodyFee;
-    }
-
-    public double getPurchaseFee() {
-        return purchaseFee;
-    }
-
-    public void setPurchaseFee(double purchaseFee) {
-        this.purchaseFee = purchaseFee;
-    }
-
-    public String getStatus() {
-        return status;
-    }
-
-    public void setStatus(String status) {
-        this.status = status;
-    }
-
+    /**
+     * 获取createdat。
+     */
     public LocalDateTime getCreatedAt() {
         return createdAt;
     }
 
+    /**
+     * 设置createdat。
+     */
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
     }

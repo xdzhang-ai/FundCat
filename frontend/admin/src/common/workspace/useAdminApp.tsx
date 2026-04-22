@@ -1,5 +1,5 @@
 /** 后台控制台总编排 hook，串联登录、数据加载、开关切换与页面导航状态。 */
-import type { AlertRule, FeatureFlag, ImportJob, WeeklyReport } from '@fundcat/contracts'
+import type { FeatureFlag } from '@fundcat/contracts'
 import type { FormEvent } from 'react'
 import { useEffect, useState } from 'react'
 import { useLocation } from 'react-router-dom'
@@ -30,19 +30,13 @@ export function useAdminApp() {
     try {
       setIsRefreshing(true)
       setMessage('正在读取后台数据...')
-      const [summaryResponse, featureFlagsResponse, importJobsResponse, reportsResponse, alertsResponse] = await Promise.all([
+      const [summaryResponse, featureFlagsResponse] = await Promise.all([
         opsApi.summary(),
         opsApi.featureFlags(),
-        opsApi.importJobs(),
-        opsApi.reports(),
-        opsApi.alerts(),
       ])
       setConsoleData({
         summary: summaryResponse,
         featureFlags: featureFlagsResponse,
-        importJobs: importJobsResponse,
-        reports: reportsResponse,
-        alerts: alertsResponse,
       })
       setMessage('')
     } catch (error) {
@@ -98,13 +92,11 @@ export function useAdminApp() {
   return {
     activeTab,
     activeTabConfig,
-    alerts: (consoleData?.alerts ?? []) as AlertRule[],
     consoleData,
     featureFlags: (consoleData?.featureFlags ?? []) as FeatureFlag[],
     handleLogin,
     handleLogout,
     handleToggleFlag,
-    importJobs: (consoleData?.importJobs ?? []) as ImportJob[],
     isRefreshing,
     isSavingFlagCode,
     loadConsole,
@@ -112,7 +104,6 @@ export function useAdminApp() {
     needsLogin,
     password,
     providers: consoleData?.summary.providers ?? [],
-    reports: (consoleData?.reports ?? []) as WeeklyReport[],
     setPassword,
     setUsername,
     summary: consoleData?.summary ?? null,

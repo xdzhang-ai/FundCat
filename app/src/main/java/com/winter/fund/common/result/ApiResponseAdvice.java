@@ -16,6 +16,9 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseBodyAdvice;
 @RestControllerAdvice(basePackages = "com.winter.fund.modules")
 public class ApiResponseAdvice implements ResponseBodyAdvice<Object> {
 
+    /**
+     * 返回supports结果。
+     */
     @Override
     public boolean supports(MethodParameter returnType, Class<? extends HttpMessageConverter<?>> converterType) {
         return true;

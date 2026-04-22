@@ -8,12 +8,12 @@ import { workspaceApi } from '../data/workspaceApi'
 import { pageMeta, navItems } from './config'
 import type {
   AppDataState,
-  HoldingOperationTimingInput,
-  LocalHoldingDraft,
   LocalSipPlanDraft,
   PageId,
+  PendingHoldingAmountBasis,
   PendingHoldingInput,
   PendingHoldingOperationInput,
+  PendingHoldingOperationTiming,
   PendingSipInput,
   PendingWatchlistSelection,
   ScreenState,
@@ -25,19 +25,10 @@ import {
   currentFundCode,
   currentPageId,
   currentSipPlanId,
-  defaultFundCodeFromWatchlist,
   detailBackTarget,
 } from '../utils/dashboard'
 import { buildWorkspaceDerivedState } from './derived'
-import {
-  createDefaultWatchlistGroups,
-  defaultPassword,
-  defaultSipCadence,
-  defaultSipMonthDay,
-  defaultSipWeekday,
-  defaultUsername,
-  watchlistGroupOrder,
-} from './constants'
+import { createDefaultWatchlistGroup, defaultPassword, defaultSipCadence, defaultSipMonthDay, defaultSipWeekday, defaultUsername, defaultWatchlistGroupName } from './constants'
 import { createWorkspaceEnsureLoaders } from './loaders'
 import { createDefaultWorkspaceInputs, createEmptyAppData } from './state'
 import { createSipPlanActions } from '../../modules/automation/model/sipPlanActions'
@@ -59,24 +50,28 @@ export function useWorkspaceApp() {
   const [username, setUsername] = useState(defaultUsername)
   const [password, setPassword] = useState(defaultPassword)
   const [actionMessage, setActionMessage] = useState<string | null>(null)
-  const [watchlistGroups, setWatchlistGroups] = useState<Record<string, WatchlistGroup[]>>({})
+  const [watchlistGroups, setWatchlistGroups] = useState<Record<string, WatchlistGroup>>({})
   const [pendingWatchlistSelection, setPendingWatchlistSelection] = useState<PendingWatchlistSelection | null>(null)
-  const [pendingWatchlistGroups, setPendingWatchlistGroups] = useState<WatchlistGroup[]>(() => createDefaultWatchlistGroups())
+  const [pendingWatchlistGroup, setPendingWatchlistGroup] = useState<WatchlistGroup>(() => createDefaultWatchlistGroup())
   const [pendingHoldingInput, setPendingHoldingInput] = useState<PendingHoldingInput | null>(null)
   const [pendingHoldingAmount, setPendingHoldingAmount] = useState('')
   const [pendingHoldingPnl, setPendingHoldingPnl] = useState('')
+  const [pendingHoldingAmountBasis, setPendingHoldingAmountBasis] = useState<PendingHoldingAmountBasis>(
+    createDefaultWorkspaceInputs().holdingAmountBasis,
+  )
   const [pendingHoldingOperationInput, setPendingHoldingOperationInput] = useState<PendingHoldingOperationInput | null>(null)
   const [pendingHoldingOperationAmount, setPendingHoldingOperationAmount] = useState('')
   const [pendingHoldingOperationShares, setPendingHoldingOperationShares] = useState('')
   const [pendingHoldingOperationTradeDate, setPendingHoldingOperationTradeDate] = useState(createDefaultWorkspaceInputs().holdingOperationTradeDate)
-  const [pendingHoldingOperationTiming, setPendingHoldingOperationTiming] = useState<HoldingOperationTimingInput>(createDefaultWorkspaceInputs().holdingOperationTiming)
+  const [pendingHoldingOperationTiming, setPendingHoldingOperationTiming] = useState<PendingHoldingOperationTiming>(
+    createDefaultWorkspaceInputs().holdingOperationTiming,
+  )
   const [pendingHoldingOperationFeeRate, setPendingHoldingOperationFeeRate] = useState(createDefaultWorkspaceInputs().holdingOperationFeeRate)
   const [pendingSipInput, setPendingSipInput] = useState<PendingSipInput | null>(null)
   const [pendingSipCadence, setPendingSipCadence] = useState<SipCadenceInput>(defaultSipCadence)
   const [pendingSipWeekday, setPendingSipWeekday] = useState<SipWeekdayInput>(defaultSipWeekday)
   const [pendingSipMonthDay, setPendingSipMonthDay] = useState(defaultSipMonthDay)
   const [pendingSipAmount, setPendingSipAmount] = useState('')
-  const [localHoldingDrafts, setLocalHoldingDrafts] = useState<LocalHoldingDraft[]>([])
   const [localSipPlanDrafts, setLocalSipPlanDrafts] = useState<LocalSipPlanDraft[]>([])
   const [isRouteLoading, setIsRouteLoading] = useState(false)
   const [showRouteLoading, setShowRouteLoading] = useState(false)
@@ -93,7 +88,6 @@ export function useWorkspaceApp() {
     detailDashboard,
     effectiveFunds,
     effectiveFundSuggestions,
-    effectivePortfolios,
     effectiveSelectedFund,
     effectiveSipPlans,
     featureFlags,
@@ -105,7 +99,6 @@ export function useWorkspaceApp() {
     actionMessage,
     data,
     fundSuggestions,
-    localHoldingDrafts,
     localSipPlanDrafts,
   })
   const isFlagEnabled = (code: string) => featureFlags.find((flag) => flag.code === code)?.enabled ?? false
@@ -122,6 +115,7 @@ export function useWorkspaceApp() {
     ensureSipRecords,
     ensureSipPlans,
     ensureWatchlist,
+    ensureWatchlistGroups,
   } = createWorkspaceEnsureLoaders({
     getData: () => dataRef.current,
     getFundDetailCache: () => fundDetailCacheRef.current,
@@ -155,8 +149,8 @@ export function useWorkspaceApp() {
   }, [location.pathname, navigate, navigationType])
 
   useEffect(() => {
-    const nextGroups: Record<string, WatchlistGroup[]> = Object.fromEntries(
-      (data.watchlist ?? []).map((item) => [item.code, item.groups?.length ? item.groups : ['全部']]),
+    const nextGroups: Record<string, WatchlistGroup> = Object.fromEntries(
+      (data.watchlist ?? []).map((item) => [item.code, item.group ?? '全部']),
     )
     setWatchlistGroups(nextGroups)
   }, [data.watchlist])
@@ -173,10 +167,11 @@ export function useWorkspaceApp() {
     setActionMessage(null)
     setPendingWatchlistSelection(null)
     const defaults = createDefaultWorkspaceInputs()
-    setPendingWatchlistGroups(defaults.watchlistGroups)
+    setPendingWatchlistGroup(defaults.watchlistGroup)
     setPendingHoldingInput(null)
     setPendingHoldingAmount(defaults.holdingAmount)
     setPendingHoldingPnl(defaults.holdingPnl)
+    setPendingHoldingAmountBasis(defaults.holdingAmountBasis)
     setPendingHoldingOperationInput(null)
     setPendingHoldingOperationAmount(defaults.holdingOperationAmount)
     setPendingHoldingOperationShares(defaults.holdingOperationShares)
@@ -239,18 +234,19 @@ export function useWorkspaceApp() {
 
       if (page === 'overview') {
         await ensureOverviewDashboard(force)
-        const focusCode = preferredFundCode ?? defaultFundCodeFromWatchlist(dataRef.current.overviewWatchlistPulse?.items ?? [])
-        await ensureFundDetail(focusCode, force)
       }
 
       if (page === 'funds') {
         if (preferredFundCode) {
-          const [, , , selectedFund] = await Promise.all([
+          const [, , , , selectedFund] = await Promise.all([
             ensureFeatureFlags(force),
             ensureOrders(force),
             ensureSipPlans(force),
+            ensureHoldingsOverview(force),
             ensureFundDetail(preferredFundCode, force),
           ])
+
+          await ensureWatchlistGroups(force)
 
           if (selectedFund?.held) {
             await ensureFundHoldingInsight(preferredFundCode, force)
@@ -258,7 +254,7 @@ export function useWorkspaceApp() {
             clearFundHoldingInsight()
           }
         } else {
-          await Promise.all([ensureFunds(force), ensureWatchlist(force)])
+          await Promise.all([ensureFunds(force), ensureWatchlist(force), ensureWatchlistGroups(force)])
           clearFundHoldingInsight()
         }
       }
@@ -267,11 +263,11 @@ export function useWorkspaceApp() {
         await ensureHoldingsOverview(force)
       }
 
-      if (page === 'portfolio') {
-        await ensureWatchlist(force)
+      if (page === 'watchlist') {
+        await Promise.all([ensureWatchlist(force), ensureWatchlistGroups(force)])
       }
 
-      if (page === 'automation') {
+      if (page === 'sip') {
         await ensureSipPlans(force)
         if (routeSipPlanId) {
           await ensureSipRecords(routeSipPlanId, force)
@@ -325,7 +321,7 @@ export function useWorkspaceApp() {
 
   const watchlistActions = createWatchlistActions({
     getData: () => dataRef.current,
-    getPendingWatchlistGroups: () => pendingWatchlistGroups,
+    getPendingWatchlistGroup: () => pendingWatchlistGroup,
     getPendingWatchlistSelection: () => pendingWatchlistSelection,
     getSelectedCode: () => selectedCode,
     refreshCurrentPage,
@@ -341,7 +337,7 @@ export function useWorkspaceApp() {
     setPendingSipInput,
     setPendingSipMonthDay,
     setPendingSipWeekday,
-    setPendingWatchlistGroups,
+    setPendingWatchlistGroup,
     setPendingWatchlistSelection,
     setWatchlistGroups,
   })
@@ -349,6 +345,7 @@ export function useWorkspaceApp() {
   const holdingActions = createHoldingActions({
     getData: () => dataRef.current,
     getPendingHoldingAmount: () => pendingHoldingAmount,
+    getPendingHoldingAmountBasis: () => pendingHoldingAmountBasis,
     getPendingHoldingInput: () => pendingHoldingInput,
     getPendingHoldingPnl: () => pendingHoldingPnl,
     getSelectedFundHoldingInsight: () => dataRef.current.selectedFundHoldingInsight,
@@ -356,6 +353,7 @@ export function useWorkspaceApp() {
     setActionMessage,
     setData,
     setPendingHoldingAmount,
+    setPendingHoldingAmountBasis,
     setPendingHoldingInput,
     setPendingHoldingPnl,
     setPendingSipAmount,
@@ -363,7 +361,7 @@ export function useWorkspaceApp() {
     setPendingSipInput,
     setPendingSipMonthDay,
     setPendingSipWeekday,
-    setPendingWatchlistGroups,
+    setPendingWatchlistGroup,
     setPendingWatchlistSelection,
   })
 
@@ -373,8 +371,8 @@ export function useWorkspaceApp() {
     getPendingHoldingOperationFeeRate: () => pendingHoldingOperationFeeRate,
     getPendingHoldingOperationInput: () => pendingHoldingOperationInput,
     getPendingHoldingOperationShares: () => pendingHoldingOperationShares,
-    getPendingHoldingOperationTiming: () => pendingHoldingOperationTiming,
     getPendingHoldingOperationTradeDate: () => pendingHoldingOperationTradeDate,
+    getPendingHoldingOperationTiming: () => pendingHoldingOperationTiming,
     refreshCurrentPage,
     setActionMessage,
     setPendingHoldingAmount,
@@ -383,15 +381,15 @@ export function useWorkspaceApp() {
     setPendingHoldingOperationFeeRate,
     setPendingHoldingOperationInput,
     setPendingHoldingOperationShares,
-    setPendingHoldingOperationTiming,
     setPendingHoldingOperationTradeDate,
+    setPendingHoldingOperationTiming,
     setPendingHoldingPnl,
     setPendingSipAmount,
     setPendingSipCadence,
     setPendingSipInput,
     setPendingSipMonthDay,
     setPendingSipWeekday,
-    setPendingWatchlistGroups,
+    setPendingWatchlistGroup,
     setPendingWatchlistSelection,
   })
 
@@ -413,7 +411,7 @@ export function useWorkspaceApp() {
     setPendingSipInput,
     setPendingSipMonthDay,
     setPendingSipWeekday,
-    setPendingWatchlistGroups,
+    setPendingWatchlistGroup,
     setPendingWatchlistSelection,
   })
 
@@ -438,8 +436,8 @@ export function useWorkspaceApp() {
     setFundDetailCache({})
     watchlistActions.resetWorkspaceStateAfterLogout()
     setLocalSipPlanDrafts([])
-    setLocalHoldingDrafts([])
     const defaults = createDefaultWorkspaceInputs()
+    setPendingHoldingAmountBasis(defaults.holdingAmountBasis)
     setPendingHoldingOperationInput(null)
     setPendingHoldingOperationAmount(defaults.holdingOperationAmount)
     setPendingHoldingOperationShares(defaults.holdingOperationShares)
@@ -487,6 +485,10 @@ export function useWorkspaceApp() {
   }
 
   const currentPageMeta = pageMeta[activePage]
+  const watchlistGroupOrder = [
+    defaultWatchlistGroupName,
+    ...((data.watchlistGroupOptions ?? []).map((group) => group.name).filter((name) => name !== defaultWatchlistGroupName)),
+  ]
   return {
     activePage,
     actionMessage,
@@ -501,7 +503,6 @@ export function useWorkspaceApp() {
     detailDashboard,
     effectiveFunds,
     effectiveFundSuggestions,
-    effectivePortfolios,
     effectiveSelectedFund,
     effectiveSipPlans,
     fundDetailBackPath,
@@ -518,46 +519,48 @@ export function useWorkspaceApp() {
     navigateToPage,
     openFundDetail,
     pendingHoldingAmount,
+    pendingHoldingAmountBasis,
     pendingHoldingInput,
     pendingHoldingOperationAmount,
     pendingHoldingOperationFeeRate,
     pendingHoldingOperationInput,
     pendingHoldingOperationShares,
-    pendingHoldingOperationTiming,
     pendingHoldingOperationTradeDate,
+    pendingHoldingOperationTiming,
     pendingHoldingPnl,
     pendingSipAmount,
     pendingSipCadence,
     pendingSipInput,
     pendingSipMonthDay,
     pendingSipWeekday,
-    pendingWatchlistGroups,
+    pendingWatchlistGroup,
     pendingWatchlistSelection,
     runQuickAction,
     screen,
     search,
     setPendingHoldingAmount,
+    setPendingHoldingAmountBasis,
     setPendingHoldingInput,
     setPendingHoldingOperationAmount,
     setPendingHoldingOperationFeeRate: holdingOperationActions.handleHoldingOperationFeeRateChange,
     setPendingHoldingOperationInput,
     setPendingHoldingOperationShares,
-    setPendingHoldingOperationTiming,
     setPendingHoldingOperationTradeDate,
+    setPendingHoldingOperationTiming,
     setPendingHoldingPnl,
     setPendingSipAmount,
     setPendingSipCadence,
     setPendingSipInput,
     setPendingSipMonthDay,
     setPendingSipWeekday,
-    setPendingWatchlistGroups,
+    setPendingWatchlistGroup,
     setPendingWatchlistSelection,
     setPassword,
     setShowRouteLoading,
     setUsername,
     showRouteLoading,
     sipPlanCodeSet,
-    togglePendingWatchlistGroup: watchlistActions.togglePendingWatchlistGroup,
+    selectPendingWatchlistGroup: watchlistActions.selectPendingWatchlistGroup,
     username,
     password,
     routeSipPlanId,
@@ -570,8 +573,10 @@ export function useWorkspaceApp() {
     handleToggleSipPlan: sipPlanActions.handleToggleSipPlan,
     holdingsOverview: data.holdingsOverview,
     watchlistDashboard,
+    watchlistGroupOptions: data.watchlistGroupOptions ?? [],
     watchlistGroupOrder,
     watchlistGroups,
     assignWatchlistGroup: watchlistActions.assignWatchlistGroup,
+    createWatchlistGroup: watchlistActions.createWatchlistGroup,
   }
 }
