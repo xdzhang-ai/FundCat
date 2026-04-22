@@ -7,10 +7,22 @@ from datetime import date
 import json
 import logging
 import os
+from pathlib import Path
 from typing import Any
 
 from pydantic import BaseModel
+from dotenv import load_dotenv
 import requests
+
+
+def load_local_env() -> None:
+    """在进程启动早期自动加载 fund-data-service 根目录下的 .env。
+
+    这里不覆盖已经存在的系统环境变量，这样本地调试可以直接依赖 `.env`，
+    部署环境仍然可以通过真实环境变量覆盖默认值。
+    """
+    service_root = Path(__file__).resolve().parents[1]
+    load_dotenv(service_root / ".env", override=False)
 
 
 def configure_logging() -> logging.Logger:
@@ -19,6 +31,7 @@ def configure_logging() -> logging.Logger:
     return logging.getLogger("fund_data_service")
 
 
+load_local_env()
 LOG = configure_logging()
 
 
