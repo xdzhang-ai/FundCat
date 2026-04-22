@@ -1,6 +1,6 @@
 /** 工作台全局配置，维护导航项与各页面头部元信息。 */
 import { BellRing, ChartCandlestick, LayoutDashboard, WalletCards } from 'lucide-react'
-import type { PageId, WatchlistGroup } from '../appTypes'
+import type { PageId } from '../appTypes'
 
 export const navItems: Array<{
   id: PageId
@@ -11,11 +11,9 @@ export const navItems: Array<{
   { id: 'overview', label: '仪表盘', icon: LayoutDashboard, path: '/' },
   { id: 'funds', label: '基金中心', icon: ChartCandlestick, path: '/funds' },
   { id: 'holdings', label: '持仓页', icon: WalletCards, path: '/holdings' },
-  { id: 'portfolio', label: '自选基金', icon: WalletCards, path: '/portfolio' },
-  { id: 'automation', label: '基金定投', icon: BellRing, path: '/automation' },
+  { id: 'watchlist', label: '自选基金', icon: WalletCards, path: '/watchlist' },
+  { id: 'sip', label: '基金定投', icon: BellRing, path: '/sip' },
 ]
-
-export const watchlistGroupOrder: WatchlistGroup[] = ['全部', '成长进攻', '稳健配置', '行业主题']
 
 export const pageMeta: Record<PageId, { eyebrow: string; title: string; description: string }> = {
   overview: {
@@ -33,12 +31,12 @@ export const pageMeta: Record<PageId, { eyebrow: string; title: string; descript
     title: '持仓页',
     description: '聚合当前持有的基金，快速查看仓位、收益和成本，并直接进入对应基金详情。',
   },
-  portfolio: {
+  watchlist: {
     eyebrow: 'Watchlist Book',
     title: '自选基金',
     description: '使用与持仓页一致的列表结构聚合当前自选基金，快速查看涨跌并进入基金详情。',
   },
-  automation: {
+  sip: {
     eyebrow: 'Fund SIP',
     title: '基金定投',
     description: '查看当前基金定投计划与下次执行时间，集中管理持续买入节奏。',

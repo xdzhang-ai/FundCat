@@ -67,6 +67,9 @@ export function findSipPlanByFundCode(code: string, plans: SipPlan[] | null) {
 }
 
 export function resolveSipStatus(plan: SipPlan) {
+  if (plan.status === '生效' || plan.status === '暂停' || plan.status === '停止') {
+    return plan.status
+  }
   if (plan.active) {
     return '生效' as const
   }

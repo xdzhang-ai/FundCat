@@ -32,6 +32,9 @@ public class MemoryTokenService implements TokenService {
         this.authProperties = authProperties;
     }
 
+    /**
+     * 判断是否sue。
+     */
     @Override
     public IssuedTokens issue(UserEntity user) {
         Instant accessExpiry = clock.instant().plus(authProperties.getAccessTokenTtlMinutes(), ChronoUnit.MINUTES);
@@ -54,6 +57,9 @@ public class MemoryTokenService implements TokenService {
         return new IssuedTokens(accessToken, refreshToken, authProperties.getAccessTokenTtlMinutes() * 60L);
     }
 
+    /**
+     * 解析访问令牌。
+     */
     @Override
     public Optional<CurrentUser> resolveAccessToken(String token) {
         cleanupExpiredTokens();
@@ -65,6 +71,9 @@ public class MemoryTokenService implements TokenService {
         return Optional.of(new CurrentUser(session.userId(), session.displayName(), session.username()));
     }
 
+    /**
+     * 返回refresh结果。
+     */
     @Override
     public Optional<IssuedTokens> refresh(String token) {
         cleanupExpiredTokens();
@@ -83,6 +92,9 @@ public class MemoryTokenService implements TokenService {
         return Optional.of(issue(user));
     }
 
+    /**
+     * 撤销访问令牌。
+     */
     @Override
     public void revokeAccessToken(String token) {
         cleanupExpiredTokens();
@@ -94,6 +106,9 @@ public class MemoryTokenService implements TokenService {
         log.info("In-memory token session revoked, userId={}", session.userId());
     }
 
+    /**
+     * 清理expiredtokens。
+     */
     private void cleanupExpiredTokens() {
         Instant now = clock.instant();
         accessTokens.entrySet().removeIf(entry -> entry.getValue().accessExpiry().isBefore(now));

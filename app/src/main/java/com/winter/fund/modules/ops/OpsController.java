@@ -28,16 +28,31 @@ public class OpsController {
         this.opsService = opsService;
     }
 
+    /**
+     * 返回summary结果。
+     */
     @GetMapping("/summary")
     @Operation(summary = "获取运维摘要", description = "返回功能开关和市场数据提供方状态。")
     public OpsDtos.OpsSummaryResponse summary() {
         return opsService.getSummary();
     }
 
+    /**
+     * 返回featureFlags结果。
+     */
     @GetMapping("/feature-flags")
     @Operation(summary = "获取功能开关列表", description = "返回全部功能开关及其当前状态。")
     public java.util.List<OpsDtos.FeatureFlagResponse> featureFlags() {
         return opsService.getFeatureFlags();
+    }
+
+    /**
+     * 返回最近任务运行记录。
+     */
+    @GetMapping("/job-runs")
+    @Operation(summary = "获取最近任务运行记录", description = "返回 Airflow、Java 定时任务和消息消费的最近执行状态。")
+    public java.util.List<OpsDtos.JobRunResponse> jobRuns() {
+        return opsService.getRecentJobRuns();
     }
 
     @PatchMapping("/feature-flags/{code}")

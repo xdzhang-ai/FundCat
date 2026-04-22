@@ -295,6 +295,12 @@ Authorization: Bearer fc_at_xxx
 }
 ```
 
+### GET `/api/v1/funds/bridge/{code}/unit-nav-history`
+用途：通过本地 Python AKShare 服务获取单只基金单位净值走势原始列表。
+
+### GET `/api/v1/funds/bridge/{code}/acc-nav-history`
+用途：通过本地 Python AKShare 服务获取单只基金累计净值走势原始列表。
+
 ## Holdings
 
 ### GET `/api/v1/holdings/overview`
@@ -351,9 +357,12 @@ Authorization: Bearer fc_at_xxx
 
 请求说明：
 - 前端入参仍然只传 `BUY / SELL`
-- 后端直接按前端传入的 `tradeDate` 处理，不额外判断 `15:00` 前后
-- 会使用该日期可用的最近确认净值立即执行并返回 `已执行`
-- 后端会按补记日期当天的真实持仓状态自动归类操作记录：
+- 前端负责根据“`15:00 前 / 15:00 后`”把用户选择换算成最终 `tradeDate`，后端只接收最终成交日
+- 如果 `tradeDate` 是历史日期且该日确认净值已存在，会立即执行并返回 `已执行`
+- 如果 `tradeDate` 是今天或未来交易日，或者目标交易日确认净值尚未落库，会先返回 `确认中`
+- `确认中` 期间不会立刻改动当前持仓、持仓洞察和持仓页金额收益
+- 晚间确认净值轮询拿到目标交易日净值后，后端才会把这笔操作结算成 `已执行`
+- 手工买卖最终执行后，后端会根据结算前后持仓状态自动细分操作类型：
   - `OPEN_POSITION`：本次买入前没有持仓，属于建仓
   - `BUY`：本次买入前已经有持仓，属于加仓
   - `SELL`：卖出后仍有剩余份额，属于减仓
@@ -407,6 +416,28 @@ Authorization: Bearer fc_at_xxx
 }
 ```
 
+确认中示例：
+
+```json
+{
+  "code": 0,
+  "message": "success",
+  "data": {
+    "id": "op-002",
+    "fundCode": "000001",
+    "operation": "BUY",
+    "source": "MANUAL",
+    "status": "确认中",
+    "tradeDate": "2026-03-31",
+    "amount": 2000,
+    "sharesDelta": 0,
+    "nav": 0,
+    "feeRate": 0.0015,
+    "feeAmount": 3
+  }
+}
+```
+
 ## Watchlist / Portfolio
 
 ### GET `/api/v1/watchlist`
@@ -444,7 +475,7 @@ Authorization: Bearer fc_at_xxx
 用途：兼容旧前端的持仓聚合接口。
 
 ### GET `/api/v1/orders`
-用途：获取最近已执行动作。
+用途：获取最近动作，返回最近的 `确认中` 和 `已执行` 操作记录。
 
 查询参数：
 - `scope`：当前默认 `recent`
@@ -626,10 +657,14 @@ Authorization: Bearer fc_at_xxx
 - `tradeDate`
 - `feeRate`
 
-### 5. 手工买卖与定投的确认方式不同
-- 手工买卖：直接按前端传入日期执行
-- 定投：`15:00` 快照后进入 `确认中`
-- 定投在晚间拿到确认净值后会变成 `已执行`
+### 5. 手工买卖与定投的确认方式
+- 手工买卖：
+  - 历史补记且确认净值已存在时，直接 `已执行`
+  - 今天或未来交易日的买卖，会先进入 `确认中`
+  - 晚间拿到目标交易日确认净值后才会变成 `已执行`
+- 定投：
+  - `15:00` 快照命中后进入 `确认中`
+  - 晚间拿到确认净值后会变成 `已执行`
 
 ### 6. 定投记录状态只有两种
 - `确认中`
@@ -639,3 +674,9 @@ Authorization: Bearer fc_at_xxx
 - `15:00` 前后的修改都允许提交
 - 是否算入 `T` 日，由后端 `15:00` 快照决定
 - `15:00` 后动作归属 `T+1`
+
+### 8. 手工买卖的 `tradeDate` 规则
+- 前端需要让用户选择日期和 `15:00 前 / 15:00 后`
+- 前端负责把这个选择换算成最终提交给后端的 `tradeDate`
+- 后端不再根据提交时刻重新判断 `15:00` 前后
+- 如果换算后的 `tradeDate` 还没有确认净值，后端会先返回 `确认中`

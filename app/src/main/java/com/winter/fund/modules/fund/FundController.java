@@ -5,6 +5,8 @@ package com.winter.fund.modules.fund;
  */
 
 import com.winter.fund.modules.fund.model.FundDtos;
+import com.winter.fund.modules.fund.model.AkshareBridgeDtos;
+import com.winter.fund.modules.fund.service.AkshareBridgeService;
 import com.winter.fund.modules.fund.service.FundService;
 import com.winter.fund.modules.auth.model.CurrentUser;
 import java.util.List;
@@ -27,10 +29,12 @@ public class FundController {
 
     private final FundService fundService;
     private final HoldingService holdingService;
+    private final AkshareBridgeService akshareBridgeService;
 
-    public FundController(FundService fundService, HoldingService holdingService) {
+    public FundController(FundService fundService, HoldingService holdingService, AkshareBridgeService akshareBridgeService) {
         this.fundService = fundService;
         this.holdingService = holdingService;
+        this.akshareBridgeService = akshareBridgeService;
     }
 
     @GetMapping

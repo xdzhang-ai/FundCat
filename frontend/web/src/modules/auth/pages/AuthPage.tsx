@@ -64,6 +64,7 @@ export function AuthPage({
         </div>
 
         <form
+          data-testid="auth-form"
           onSubmit={onSubmit}
           className="rounded-[2rem] border border-white/8 bg-[color:var(--fc-color-surface-glass)] p-8 shadow-[var(--fc-shadow-card)] backdrop-blur-xl"
         >
@@ -73,6 +74,7 @@ export function AuthPage({
           <label className="mt-8 block">
             <span className="mb-2 block text-sm text-slate-400">用户名</span>
             <input
+              data-testid="auth-username"
               value={username}
               onChange={(event) => onUsernameChange(event.target.value)}
               className="w-full rounded-2xl border border-white/10 bg-slate-950/60 px-4 py-3 text-white outline-none transition focus:border-[color:var(--fc-color-accent)]"
@@ -81,6 +83,7 @@ export function AuthPage({
           <label className="mt-5 block">
             <span className="mb-2 block text-sm text-slate-400">密码</span>
             <input
+              data-testid="auth-password"
               type="password"
               value={password}
               onChange={(event) => onPasswordChange(event.target.value)}
@@ -90,7 +93,10 @@ export function AuthPage({
           {errorMessage ? (
             <p className="mt-4 text-sm text-orange-300">{errorMessage}</p>
           ) : null}
-          <button className="mt-8 inline-flex w-full items-center justify-center rounded-2xl bg-[color:var(--fc-color-accent)] px-4 py-3 font-semibold text-slate-950 transition hover:brightness-105">
+          <button
+            data-testid="auth-submit"
+            className="mt-8 inline-flex w-full items-center justify-center rounded-2xl bg-[color:var(--fc-color-accent)] px-4 py-3 font-semibold text-slate-950 transition hover:brightness-105"
+          >
             进入研究工作台
           </button>
           <p className="mt-4 text-xs text-slate-500">Demo credentials: demo_analyst / ChangeMe123!</p>

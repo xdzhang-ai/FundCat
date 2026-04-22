@@ -1,7 +1,7 @@
 /** 工作台默认状态工厂，用于初始化数据容器、凭证和弹层输入。 */
 import type { AppDataState } from '../appTypes'
 import {
-  createDefaultWatchlistGroups,
+  createDefaultWatchlistGroup,
   defaultPassword,
   defaultSipCadence,
   defaultSipMonthDay,
@@ -27,7 +27,7 @@ export function createEmptyAppData(): AppDataState {
     selectedFund: null,
     selectedFundHoldingInsight: null,
     watchlist: null,
-    portfolios: null,
+    watchlistGroupOptions: null,
     holdingsOverview: null,
     orders: null,
     localHoldingHistory: [],
@@ -48,13 +48,14 @@ export function createDefaultCredentials() {
 
 export function createDefaultWorkspaceInputs() {
   return {
-    watchlistGroups: createDefaultWatchlistGroups(),
+    watchlistGroup: createDefaultWatchlistGroup(),
     holdingAmount: '',
     holdingPnl: '',
+    holdingAmountBasis: 'T' as const,
     holdingOperationAmount: '',
     holdingOperationShares: '',
     holdingOperationTradeDate: currentLocalDateString(),
-    holdingOperationTiming: 'AFTER_3PM' as const,
+    holdingOperationTiming: 'BEFORE_3PM' as const,
     holdingOperationFeeRate: '0',
     sipCadence: defaultSipCadence,
     sipWeekday: defaultSipWeekday,

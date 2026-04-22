@@ -5,6 +5,9 @@ export type SipCadenceInput = 'DAILY' | 'WEEKLY' | 'MONTHLY'
 export type SipWeekdayInput = '1' | '2' | '3' | '4' | '5' | '6' | '0'
 
 export function resolveSipStatus(plan: SipPlan) {
+  if (plan.status === '生效' || plan.status === '暂停' || plan.status === '停止') {
+    return plan.status
+  }
   if (plan.active) {
     return '生效' as const
   }

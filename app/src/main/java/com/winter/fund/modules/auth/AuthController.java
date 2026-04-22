@@ -32,6 +32,9 @@ public class AuthController {
         this.authService = authService;
     }
 
+    /**
+     * 返回register结果。
+     */
     @PostMapping("/register")
     @ResponseStatus(HttpStatus.CREATED)
     @Operation(summary = "注册", description = "创建新用户并返回登录态。")
@@ -39,18 +42,27 @@ public class AuthController {
         return authService.register(request);
     }
 
+    /**
+     * 返回login结果。
+     */
     @PostMapping("/login")
     @Operation(summary = "登录", description = "使用用户名密码登录并返回访问令牌和刷新令牌。")
     public AuthDtos.AuthResponse login(@Valid @RequestBody AuthDtos.LoginRequest request) {
         return authService.login(request);
     }
 
+    /**
+     * 返回refresh结果。
+     */
     @PostMapping("/refresh")
     @Operation(summary = "刷新令牌", description = "使用刷新令牌换取新的访问令牌。")
     public AuthDtos.AuthResponse refresh(@Valid @RequestBody AuthDtos.RefreshRequest request) {
         return authService.refresh(request);
     }
 
+    /**
+     * 执行logout流程。
+     */
     @PostMapping("/logout")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @Operation(summary = "退出登录", description = "撤销当前访问令牌。")
@@ -58,6 +70,9 @@ public class AuthController {
         authService.logout(authorizationHeader);
     }
 
+    /**
+     * 返回me结果。
+     */
     @GetMapping("/me")
     @Operation(summary = "获取当前用户", description = "返回当前登录用户的资料信息。")
     public AuthDtos.UserProfileResponse me(@AuthenticationPrincipal CurrentUser currentUser) {

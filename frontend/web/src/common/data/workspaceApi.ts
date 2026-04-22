@@ -1,12 +1,10 @@
 /** 工作台业务 API 层，按前端场景组织接口调用，屏蔽底层请求细节。 */
 import type {
-  AlertRule,
   AuthResponse,
-  CreateImportJobPayload,
   CreateHoldingOperationPayload,
   CreateSipPlanPayload,
   CreateWatchlistPayload,
-  DashboardResponse,
+  CreateWatchlistGroupPayload,
   FeatureFlag,
   FundCard,
   FundDetail,
@@ -14,32 +12,21 @@ import type {
   HoldingOperation,
   HoldingsOverviewResponse,
   HoldingUpsertPayload,
-  ImportJob,
   LoginPayload,
   OverviewHeroMetricsResponse,
   OverviewRecentActionsResponse,
   OverviewSipPlanDigestResponse,
   OverviewWatchlistPulseResponse,
   PaperOrder,
-  PortfolioSummary,
   SipPlan,
   SipExecutionRecord,
   UpdateSipPlanPayload,
   UpdateWatchlistGroupsPayload,
+  WatchlistGroupOption,
   WatchlistItem,
-  WeeklyReport,
 } from '@fundcat/contracts'
 import { authStorage, getAccessToken } from './authStorage'
 import { API_BASE, requestJson, withAuthHeaders } from './http'
-
-async function requestOverviewSlice<T>(path: string, fallback: (dashboard: DashboardResponse) => T) {
-  try {
-    return await requestJson<T>(path)
-  } catch {
-    const dashboard = await workspaceApi.dashboard()
-    return fallback(dashboard)
-  }
-}
 
 function toLegacyOrder(operation: HoldingOperation): PaperOrder {
   const orderType: PaperOrder['orderType'] =
@@ -79,44 +66,26 @@ export const workspaceApi = {
       headers: withAuthHeaders(),
     }).catch(() => undefined)
   },
-  dashboard: async () => {
-    const dashboard = await requestJson<DashboardResponse>('/dashboard')
-    return {
-      ...dashboard,
-      orders: (dashboard.orders as unknown as HoldingOperation[]).map(toLegacyOrder),
-    }
-  },
   overviewHeroMetrics: () =>
-    requestOverviewSlice<OverviewHeroMetricsResponse>('/overview/hero-metrics', (dashboard) => ({
-      profile: dashboard.profile,
-      metrics: dashboard.heroMetrics,
-    })),
+    requestJson<OverviewHeroMetricsResponse>('/overview/hero-metrics'),
   overviewWatchlistPulse: () =>
-    requestOverviewSlice<OverviewWatchlistPulseResponse>('/overview/watchlist-pulse', (dashboard) => ({
-      items: dashboard.watchlist,
-    })),
+    requestJson<OverviewWatchlistPulseResponse>('/overview/watchlist-pulse'),
   overviewRecentActions: () =>
-    requestOverviewSlice<OverviewRecentActionsResponse>('/overview/recent-actions', (dashboard) => ({
-      items: dashboard.orders,
-    })),
+    requestJson<OverviewRecentActionsResponse>('/overview/recent-actions'),
   overviewSipPlanDigests: () =>
-    requestOverviewSlice<OverviewSipPlanDigestResponse>('/overview/sip-digests', (dashboard) => ({
-      items: dashboard.sipPlans.map((plan) => ({
-        id: plan.id,
-        fundCode: plan.fundCode,
-        fundName: plan.fundName,
-        amount: plan.amount,
-        cadenceLabel: String(plan.cadence),
-        nextRunOn: plan.active ? plan.nextRunAt.slice(0, 10) : undefined,
-        status: plan.active ? '生效' : new Date(plan.nextRunAt).getTime() < Date.now() ? '停止' : '暂停',
-      })),
-    })),
+    requestJson<OverviewSipPlanDigestResponse>('/overview/sip-digests'),
   featureFlags: () => requestJson<FeatureFlag[]>('/ops/feature-flags'),
   funds: (query = '') =>
     requestJson<FundCard[]>(`/funds${query ? `?query=${encodeURIComponent(query)}` : ''}`),
   fundDetail: (code: string) => requestJson<FundDetail>(`/funds/${code}`),
   fundHoldingInsight: (code: string) => requestJson<HoldingInsight>(`/funds/${encodeURIComponent(code)}/holding-insight`),
   watchlist: () => requestJson<WatchlistItem[]>('/watchlist'),
+  watchlistGroups: () => requestJson<WatchlistGroupOption[]>('/watchlist/groups'),
+  createWatchlistGroup: (payload: CreateWatchlistGroupPayload) =>
+    requestJson<WatchlistGroupOption>('/watchlist/groups', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
   addWatchlist: (payload: CreateWatchlistPayload) =>
     requestJson('/watchlist', {
       method: 'POST',
@@ -147,7 +116,6 @@ export const workspaceApi = {
       method: 'POST',
       body: JSON.stringify(payload),
     }),
-  portfolios: () => requestJson<PortfolioSummary[]>('/portfolios'),
   orders: async () => {
     const operations = await requestJson<HoldingOperation[]>('/orders?scope=recent')
     return operations.map(toLegacyOrder)
@@ -177,12 +145,4 @@ export const workspaceApi = {
     requestJson<SipPlan>(`/sips/${encodeURIComponent(sipPlanId)}/stop`, {
       method: 'POST',
     }),
-  importJobs: () => requestJson<ImportJob[]>('/import-jobs'),
-  createImportJob: (payload: CreateImportJobPayload) =>
-    requestJson('/import-jobs', {
-      method: 'POST',
-      body: JSON.stringify(payload),
-    }),
-  weeklyReports: () => requestJson<WeeklyReport[]>('/reports/weekly'),
-  alerts: () => requestJson<AlertRule[]>('/alerts'),
 }

@@ -29,9 +29,15 @@ public final class FundDtos {
     ) {
     }
 
+    /**
+     * 返回IndustryExposureResponse结果。
+     */
     public record IndustryExposureResponse(String name, double weight) {
     }
 
+    /**
+     * 返回TopHoldingResponse结果。
+     */
     public record TopHoldingResponse(String name, String symbol, double dailyChange) {
     }
 
@@ -39,10 +45,7 @@ public final class FundDtos {
     public record FundCardResponse(
         @Schema(description = "基金代码", example = "000001") String code,
         @Schema(description = "基金名称", example = "华夏成长优选混合") String name,
-        @Schema(description = "分类", example = "主动权益") String category,
-        @Schema(description = "风险等级", example = "中高风险") String riskLevel,
         @Schema(description = "标签", example = "[\"AI\",\"高弹性\",\"观察池\"]") List<String> tags,
-        @Schema(description = "业绩比较基准", example = "沪深300收益率 * 85% + 中债综合 * 15%") String benchmark,
         @Schema(description = "确认净值", example = "1.6234") double unitNav,
         @Schema(description = "确认涨跌幅", example = "1.28") double dayGrowth,
         @Schema(description = "参考估值净值", example = "1.6351") double estimatedNav,
@@ -57,10 +60,7 @@ public final class FundDtos {
     public record FundDetailResponse(
         @Schema(description = "基金代码", example = "000001") String code,
         @Schema(description = "基金名称", example = "华夏成长优选混合") String name,
-        @Schema(description = "分类", example = "主动权益") String category,
-        @Schema(description = "风险等级", example = "中高风险") String riskLevel,
         @Schema(description = "标签", example = "[\"AI\",\"高弹性\",\"观察池\"]") List<String> tags,
-        @Schema(description = "业绩比较基准") String benchmark,
         @Schema(description = "确认净值", example = "1.6234") double unitNav,
         @Schema(description = "确认涨跌幅", example = "1.28") double dayGrowth,
         @Schema(description = "参考估值净值", example = "1.6351") double estimatedNav,
@@ -68,12 +68,6 @@ public final class FundDtos {
         @Schema(description = "是否仅参考估值", example = "true") boolean referenceOnly,
         @Schema(description = "是否已加入自选", example = "true") boolean watchlisted,
         @Schema(description = "是否已持仓", example = "true") boolean held,
-        @Schema(description = "管理费", example = "1.2") double managementFee,
-        @Schema(description = "托管费", example = "0.2") double custodyFee,
-        @Schema(description = "申购费", example = "0.15") double purchaseFee,
-        @Schema(description = "基金规模", example = "126.8") double assetSize,
-        @Schema(description = "股票仓位占比", example = "0.72") double stockRatio,
-        @Schema(description = "债券仓位占比", example = "0.18") double bondRatio,
         @Schema(description = "前十大持仓") List<TopHoldingResponse> topHoldings,
         @Schema(description = "净值趋势") List<TrendPoint> navHistory,
         @Schema(description = "估值趋势") List<TrendPoint> estimateHistory,

@@ -6,8 +6,8 @@ export const defaultPassword = 'ChangeMe123!'
 export const defaultSipCadence: SipCadenceInput = 'DAILY'
 export const defaultSipWeekday: SipWeekdayInput = '1'
 export const defaultSipMonthDay = '1'
-export const watchlistGroupOrder: WatchlistGroup[] = ['全部', '成长进攻', '稳健配置', '行业主题']
+export const defaultWatchlistGroupName: WatchlistGroup = '全部'
 
-export function createDefaultWatchlistGroups(): WatchlistGroup[] {
-  return ['全部']
+export function createDefaultWatchlistGroup(): WatchlistGroup {
+  return defaultWatchlistGroupName
 }

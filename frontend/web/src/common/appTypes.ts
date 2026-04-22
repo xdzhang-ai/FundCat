@@ -1,11 +1,11 @@
 /** 工作台共享类型定义，承接页面状态、表单输入和本地草稿结构。 */
 import type {
+  AmountBasis,
   AlertRule,
   DashboardResponse,
   FeatureFlag,
   FundDetail,
   HoldingInsight,
-  HoldingLot,
   HoldingsOverviewResponse,
   ImportJob,
   OverviewHeroMetricsResponse,
@@ -13,15 +13,15 @@ import type {
   OverviewSipPlanDigestResponse,
   OverviewWatchlistPulseResponse,
   PaperOrder,
-  PortfolioSummary,
   SipExecutionRecord,
   SipPlan,
+  WatchlistGroupOption,
   WatchlistItem,
   WeeklyReport,
 } from '@fundcat/contracts'
 
-export type PageId = 'overview' | 'funds' | 'holdings' | 'portfolio' | 'automation'
-export type WatchlistGroup = '全部' | '成长进攻' | '稳健配置' | '行业主题'
+export type PageId = 'overview' | 'funds' | 'holdings' | 'watchlist' | 'sip'
+export type WatchlistGroup = string
 
 export type ScreenState =
   | { status: 'loading' }
@@ -40,7 +40,7 @@ export type AppDataState = {
   selectedFund: FundDetail | null
   selectedFundHoldingInsight: HoldingInsight | null
   watchlist: WatchlistItem[] | null
-  portfolios: PortfolioSummary[] | null
+  watchlistGroupOptions: WatchlistGroupOption[] | null
   holdingsOverview: HoldingsOverviewResponse | null
   orders: PaperOrder[] | null
   localHoldingHistory: LocalHoldingHistoryItem[]
@@ -62,13 +62,15 @@ export type PendingHoldingInput = {
   mode: 'add' | 'edit'
 }
 
+export type PendingHoldingAmountBasis = AmountBasis
+
 export type PendingHoldingOperationInput = {
   code: string
   name: string
   operation: 'BUY' | 'SELL'
 }
 
-export type HoldingOperationTimingInput = 'BEFORE_3PM' | 'AFTER_3PM'
+export type PendingHoldingOperationTiming = 'BEFORE_3PM' | 'AFTER_3PM'
 
 export type PendingSipInput = {
   code: string
@@ -77,10 +79,6 @@ export type PendingSipInput = {
 
 export type SipCadenceInput = 'DAILY' | 'WEEKLY' | 'MONTHLY'
 export type SipWeekdayInput = '1' | '2' | '3' | '4' | '5' | '6' | '0'
-
-export type LocalHoldingDraft = HoldingLot & {
-  portfolioId: string
-}
 
 export type LocalSipPlanDraft = SipPlan
 

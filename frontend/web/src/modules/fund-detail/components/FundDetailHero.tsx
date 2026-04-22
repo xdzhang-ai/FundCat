@@ -10,9 +10,6 @@ export function FundDetailHero({ selectedFund }: { selectedFund: FundDetail }) {
         <div className="min-w-0">
           <p className="text-xs uppercase tracking-[0.28em] text-[color:var(--fc-color-accent)]">{selectedFund.code}</p>
           <h3 className="mt-3 font-[var(--fc-font-display)] text-3xl font-semibold text-white xl:text-4xl">{selectedFund.name}</h3>
-          <p className="mt-3 text-sm text-slate-400">
-            {selectedFund.category} · {selectedFund.riskLevel} · 跟踪基准 {selectedFund.benchmark}
-          </p>
           <div className="mt-4 flex flex-wrap gap-2">
             {selectedFund.tags.map((tag) => (
               <span key={tag} className="rounded-full border border-white/10 bg-slate-950/45 px-3 py-1.5 text-xs text-slate-200">

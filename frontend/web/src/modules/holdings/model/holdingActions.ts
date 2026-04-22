@@ -1,5 +1,5 @@
 /** 持仓模块动作层，封装新增/修改持仓以及与基金状态联动的更新逻辑。 */
-import type { FundCard, HoldingInsight } from '@fundcat/contracts'
+import type { AmountBasis, FundCard, HoldingInsight } from '@fundcat/contracts'
 import type { Dispatch, SetStateAction } from 'react'
 import type { AppDataState, PendingHoldingInput, PendingSipInput, PendingWatchlistSelection, SipCadenceInput, SipWeekdayInput, WatchlistGroup } from '../../../common/appTypes'
 import { workspaceApi } from '../../../common/data/workspaceApi'
@@ -8,6 +8,7 @@ import { createDefaultWorkspaceInputs } from '../../../common/workspace/state'
 type CreateHoldingActionsOptions = {
   getData: () => AppDataState
   getPendingHoldingAmount: () => string
+  getPendingHoldingAmountBasis: () => AmountBasis
   getPendingHoldingInput: () => PendingHoldingInput | null
   getPendingHoldingPnl: () => string
   getSelectedFundHoldingInsight: () => HoldingInsight | null
@@ -15,6 +16,7 @@ type CreateHoldingActionsOptions = {
   setActionMessage: Dispatch<SetStateAction<string | null>>
   setData: Dispatch<SetStateAction<AppDataState>>
   setPendingHoldingAmount: Dispatch<SetStateAction<string>>
+  setPendingHoldingAmountBasis: Dispatch<SetStateAction<AmountBasis>>
   setPendingHoldingInput: Dispatch<SetStateAction<PendingHoldingInput | null>>
   setPendingHoldingPnl: Dispatch<SetStateAction<string>>
   setPendingSipAmount: Dispatch<SetStateAction<string>>
@@ -22,13 +24,14 @@ type CreateHoldingActionsOptions = {
   setPendingSipInput: Dispatch<SetStateAction<PendingSipInput | null>>
   setPendingSipMonthDay: Dispatch<SetStateAction<string>>
   setPendingSipWeekday: Dispatch<SetStateAction<SipWeekdayInput>>
-  setPendingWatchlistGroups: Dispatch<SetStateAction<WatchlistGroup[]>>
+  setPendingWatchlistGroup: Dispatch<SetStateAction<WatchlistGroup>>
   setPendingWatchlistSelection: Dispatch<SetStateAction<PendingWatchlistSelection | null>>
 }
 
 export function createHoldingActions({
   getData,
   getPendingHoldingAmount,
+  getPendingHoldingAmountBasis,
   getPendingHoldingInput,
   getPendingHoldingPnl,
   getSelectedFundHoldingInsight,
@@ -36,6 +39,7 @@ export function createHoldingActions({
   setActionMessage,
   setData,
   setPendingHoldingAmount,
+  setPendingHoldingAmountBasis,
   setPendingHoldingInput,
   setPendingHoldingPnl,
   setPendingSipAmount,
@@ -43,17 +47,17 @@ export function createHoldingActions({
   setPendingSipInput,
   setPendingSipMonthDay,
   setPendingSipWeekday,
-  setPendingWatchlistGroups,
+  setPendingWatchlistGroup,
   setPendingWatchlistSelection,
 }: CreateHoldingActionsOptions) {
   function formatHoldingFieldValue(value: number) {
     return Number.isFinite(value) ? String(Number(value.toFixed(2))) : ''
   }
 
-  function openHoldingInput(fund: Pick<FundCard, 'code' | 'name'>, mode: 'add' | 'edit' = 'add') {
+  function openHoldingInput(fund: Pick<FundCard, 'code' | 'name' | 'referenceOnly'>, mode: 'add' | 'edit' = 'add') {
     const defaults = createDefaultWorkspaceInputs()
     setPendingWatchlistSelection(null)
-    setPendingWatchlistGroups(defaults.watchlistGroups)
+    setPendingWatchlistGroup(defaults.watchlistGroup)
     setPendingSipInput(null)
     setPendingSipCadence(defaults.sipCadence)
     setPendingSipWeekday(defaults.sipWeekday)
@@ -67,12 +71,14 @@ export function createHoldingActions({
     setPendingHoldingInput({ code: fund.code, name: fund.name, mode })
     setPendingHoldingAmount(mode === 'edit' && existingHolding ? formatHoldingFieldValue(existingHolding.amountHeld) : '')
     setPendingHoldingPnl(mode === 'edit' && existingHolding ? formatHoldingFieldValue(existingHolding.holdingPnl) : '')
+    setPendingHoldingAmountBasis(fund.referenceOnly ? 'T' : 'T_MINUS_1')
   }
 
   async function confirmAddHolding() {
     const pending = getPendingHoldingInput()
     const selectedFund = getData().selectedFund
     const amount = Number(getPendingHoldingAmount())
+    const amountBasis = getPendingHoldingAmountBasis()
     const pnl = Number(getPendingHoldingPnl())
 
     if (!pending || !selectedFund) return
@@ -85,7 +91,7 @@ export function createHoldingActions({
       return
     }
 
-    const currentPrice = selectedFund.referenceOnly ? selectedFund.estimatedNav : selectedFund.unitNav
+    const currentPrice = amountBasis === 'T' ? selectedFund.estimatedNav : selectedFund.unitNav
     if (!Number.isFinite(currentPrice) || currentPrice <= 0) {
       setActionMessage(`当前基金净值异常，暂时无法${pending.mode === 'edit' ? '修改' : '添加'}持仓`)
       return
@@ -100,7 +106,7 @@ export function createHoldingActions({
     try {
       const payload = {
         fundCode: pending.code,
-        amountBasis: selectedFund.referenceOnly ? ('T' as const) : ('T_MINUS_1' as const),
+        amountBasis,
         amount,
         holdingPnl: pnl,
       }

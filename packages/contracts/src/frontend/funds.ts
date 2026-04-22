@@ -33,10 +33,7 @@ export type TopHolding = {
 export type FundCard = {
   code: string
   name: string
-  category: string
-  riskLevel: string
   tags: string[]
-  benchmark: string
   unitNav: number
   dayGrowth: number
   estimatedNav: number
@@ -53,12 +50,6 @@ export type FundCard = {
  * 2. 若未来历史曲线过长，建议再把 navHistory / estimateHistory 拆成独立接口。
  */
 export type FundDetail = FundCard & {
-  managementFee: number
-  custodyFee: number
-  purchaseFee: number
-  assetSize: number
-  stockRatio: number
-  bondRatio: number
   topHoldings: TopHolding[]
   navHistory: TrendPoint[]
   estimateHistory: TrendPoint[]

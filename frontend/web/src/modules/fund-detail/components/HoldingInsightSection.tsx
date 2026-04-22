@@ -21,8 +21,8 @@ export function HoldingInsightSection({
   if (!holdingInsight) return null
 
   return (
-    <div className="rounded-[1.45rem] border border-sky-400/15 bg-sky-400/5 px-4 py-3.5">
-      <button onClick={onToggle} className="flex w-full items-center justify-between gap-4 text-left">
+    <div data-testid="holding-insight-section" className="rounded-[1.45rem] border border-sky-400/15 bg-sky-400/5 px-4 py-3.5">
+      <button data-testid="holding-insight-toggle" onClick={onToggle} className="flex w-full items-center justify-between gap-4 text-left">
         <div>
           <p className="text-sm uppercase tracking-[0.22em] text-sky-300">Holding insight</p>
           <h4 className="mt-1.5 font-[var(--fc-font-display)] text-[1.75rem] leading-none text-white">当前持仓命中</h4>
@@ -81,8 +81,9 @@ function HoldingMetric({
   value: string
   tone?: 'positive' | 'negative' | 'neutral'
 }) {
+  const testId = `holding-metric-${label.replace(/[^a-zA-Z0-9\u4e00-\u9fa5]+/g, '-').toLowerCase()}`
   return (
-    <div className="flex h-[76px] w-[176px] flex-col items-center justify-center rounded-[0.85rem] bg-slate-950/50 px-2.5 py-1.5">
+    <div data-testid={testId} className="flex h-[76px] w-[176px] flex-col items-center justify-center rounded-[0.85rem] bg-slate-950/50 px-2.5 py-1.5">
       <p className="text-[11px] uppercase tracking-[0.14em] text-slate-500">{label}</p>
       <p
         className={`mt-2 text-center font-[var(--fc-font-display)] leading-none ${valueSizeClass(value)} ${

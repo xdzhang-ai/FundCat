@@ -43,13 +43,17 @@ export function FundDetailPage(props: FundDetailPageProps) {
   )
   const rangeSeries = useMemo(() => filterRange(activeSeries, range), [activeSeries, range])
   const rangeReturn = calculateRangeReturn(rangeSeries)
-  const rangeData = rangeSeries.map((point) => ({
-    ...point,
-    markers: markerMap.get(point.date.slice(0, 10)) ?? markerMap.get(point.date) ?? [],
-  }))
+  const rangeData = useMemo(() => {
+    const startValue = rangeSeries[0]?.value ?? 0
+    return rangeSeries.map((point) => ({
+      ...point,
+      cumulativeReturn: startValue === 0 ? 0 : ((point.value - startValue) / startValue) * 100,
+      markers: markerMap.get(point.date.slice(0, 10)) ?? markerMap.get(point.date) ?? [],
+    }))
+  }, [markerMap, rangeSeries])
 
   return (
-    <section className="space-y-6">
+    <section data-testid={`fund-detail-page-${selectedFund.code}`} className="space-y-6">
       <SectionCard title="基金详情" eyebrow="Fund detail page" action={<FundDetailActionBar {...props} />}>
         <div className="space-y-5">
           <FundDetailHero selectedFund={selectedFund} />

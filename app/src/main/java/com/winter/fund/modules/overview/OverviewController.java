@@ -25,24 +25,36 @@ public class OverviewController {
         this.overviewService = overviewService;
     }
 
+    /**
+     * 返回heroMetrics结果。
+     */
     @GetMapping("/hero-metrics")
     @Operation(summary = "首页核心指标", description = "返回首页 hero 区域需要的用户资料和核心指标。")
     public OverviewDtos.HeroMetricsResponse heroMetrics(@AuthenticationPrincipal CurrentUser currentUser) {
         return overviewService.getHeroMetrics(currentUser);
     }
 
+    /**
+     * 获取自选列表脉搏。
+     */
     @GetMapping("/watchlist-pulse")
     @Operation(summary = "首页自选脉搏", description = "返回首页自选卡片列表。")
     public OverviewDtos.WatchlistPulseResponse watchlistPulse(@AuthenticationPrincipal CurrentUser currentUser) {
         return overviewService.getWatchlistPulse(currentUser);
     }
 
+    /**
+     * 返回recentActions结果。
+     */
     @GetMapping("/recent-actions")
     @Operation(summary = "首页最近动作", description = "返回首页最近执行过的买卖与定投动作。")
     public OverviewDtos.RecentActionsResponse recentActions(@AuthenticationPrincipal CurrentUser currentUser) {
         return overviewService.getRecentActions(currentUser);
     }
 
+    /**
+     * 返回sipDigests结果。
+     */
     @GetMapping("/sip-digests")
     @Operation(summary = "首页定投摘要", description = "返回首页展示的定投计划摘要。")
     public OverviewDtos.SipDigestResponse sipDigests(@AuthenticationPrincipal CurrentUser currentUser) {

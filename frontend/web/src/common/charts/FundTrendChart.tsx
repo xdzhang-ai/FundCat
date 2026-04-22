@@ -20,6 +20,7 @@ export type TrendMarker = {
 
 type TrendDatum = TrendPoint & {
   markers?: TrendMarker[]
+  cumulativeReturn?: number
 }
 
 type FundTrendChartProps = {
@@ -83,6 +84,12 @@ export function FundTrendChart({ data, accent = '#f3ba2f', costLine }: FundTrend
                 <div className="min-w-[220px] rounded-[1.1rem] border border-white/10 bg-[rgba(18,21,28,0.96)] px-4 py-3 shadow-2xl">
                   <p className="text-xs uppercase tracking-[0.22em] text-slate-500">{formatAxisLabel(String(label ?? ''))}</p>
                   <p className="mt-2 font-[var(--fc-font-display)] text-xl text-white">{formatAmount(Number(point.value))}</p>
+                  {typeof point.cumulativeReturn === 'number' ? (
+                    <p className={`mt-1 text-sm ${point.cumulativeReturn >= 0 ? 'text-emerald-300' : 'text-orange-300'}`}>
+                      区间累计 {point.cumulativeReturn >= 0 ? '+' : ''}
+                      {point.cumulativeReturn.toFixed(2)}%
+                    </p>
+                  ) : null}
                   {point.markers?.length ? (
                     <div className="mt-3 space-y-2 border-t border-white/8 pt-3">
                       {point.markers.map((marker) => (

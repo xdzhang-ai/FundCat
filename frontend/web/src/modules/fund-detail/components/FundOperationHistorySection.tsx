@@ -8,7 +8,7 @@ export function FundOperationHistorySection({
   orders: FundOperationHistoryItem[]
 }) {
   return (
-    <div className="rounded-[1.45rem] border border-white/8 bg-white/5 px-4 py-4">
+    <div data-testid="fund-operation-history" className="rounded-[1.45rem] border border-white/8 bg-white/5 px-4 py-4">
       <div className="flex flex-col gap-1">
         <p className="text-sm uppercase tracking-[0.22em] text-[color:var(--fc-color-accent)]/80">Operation history</p>
         <h4 className="font-[var(--fc-font-display)] text-[1.75rem] leading-none text-white">用户操作历史</h4>
@@ -25,7 +25,7 @@ export function FundOperationHistorySection({
         <div className="divide-y divide-white/8">
           {orders.length > 0 ? (
             orders.map((order) => (
-              <div key={order.id} className="grid grid-cols-[1.1fr_0.8fr_0.9fr_0.8fr] gap-3 px-4 py-4">
+              <div data-testid={`fund-operation-history-row-${order.id}`} key={order.id} className="grid grid-cols-[1.1fr_0.8fr_0.9fr_0.8fr] gap-3 px-4 py-4">
                 <div>
                   <p className="text-sm text-white">{order.tradeDate}</p>
                   <p className="mt-1 text-xs text-slate-500">手续费 {formatCurrency(order.fee)}</p>
@@ -61,6 +61,12 @@ function operationLabel(order: FundOperationHistoryItem) {
   if (order.operation === 'SIP_BUY' || order.source === 'SIP') {
     return '定投'
   }
+  if (order.operation === 'OPEN_POSITION') {
+    return '建仓'
+  }
+  if (order.operation === 'CLOSE_POSITION') {
+    return '清仓'
+  }
   return order.orderType === 'BUY' ? '买入' : '卖出'
 }
 
@@ -70,6 +76,12 @@ function operationToneClass(order: FundOperationHistoryItem) {
   }
   if (order.operation === 'SIP_BUY' || order.source === 'SIP') {
     return 'border-sky-400/25 bg-sky-400/10 text-sky-200'
+  }
+  if (order.operation === 'OPEN_POSITION') {
+    return 'border-[color:var(--fc-color-accent)]/30 bg-[color:var(--fc-color-accent)]/10 text-[color:var(--fc-color-accent)]'
+  }
+  if (order.operation === 'CLOSE_POSITION') {
+    return 'border-orange-400/25 bg-orange-400/10 text-orange-200'
   }
   return order.orderType === 'BUY'
     ? 'border-emerald-400/25 bg-emerald-400/10 text-emerald-200'

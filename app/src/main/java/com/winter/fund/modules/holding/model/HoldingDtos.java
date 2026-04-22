@@ -21,14 +21,31 @@ public final class HoldingDtos {
     public record HoldingOperationResponse(
         @Schema(description = "操作记录 ID", example = "op-001") String id,
         @Schema(description = "基金代码", example = "000001") String fundCode,
-        @Schema(description = "操作类型，可能为 BUY / SELL / OPEN_POSITION / CLOSE_POSITION / SIP_BUY", example = "OPEN_POSITION") String operation,
+        @Schema(description = "操作类型，可能为 BUY / SELL / OPEN_POSITION / CLOSE_POSITION / SIP_BUY；手工买卖在确认中阶段会先保留 BUY/SELL", example = "OPEN_POSITION") String operation,
         @Schema(description = "操作来源", example = "MANUAL") String source,
-        @Schema(description = "执行状态，手工买卖补记会直接返回已执行", example = "已执行") String status,
-        @Schema(description = "生效交易日期，直接使用前端传入的交易日期", example = "2026-03-30") String tradeDate,
-        @Schema(description = "交易金额，卖出时为卖出毛金额", example = "2000") double amount,
-        @Schema(description = "份额变化，卖出时为负数", example = "1234.5600") double sharesDelta,
-        @Schema(description = "交易日期对应的确认净值", example = "1.6234") double nav,
+        @Schema(description = "执行状态，支持确认中 / 已执行", example = "确认中") String status,
+        @Schema(description = "生效交易日期，前端会先根据 15:00 前后换算最终成交日后再传给后端", example = "2026-03-30") String tradeDate,
+        @Schema(description = "交易金额，卖出在确认中阶段可能为 0，结算后为卖出毛金额", example = "2000") double amount,
+        @Schema(description = "份额变化，卖出时为负数；买入在确认中阶段为 0", example = "1234.5600") double sharesDelta,
+        @Schema(description = "交易日期对应的确认净值，确认中阶段为 0", example = "1.6234") double nav,
         @Schema(description = "费率，按 0~1 传值", example = "0.0015") double feeRate,
+        @Schema(description = "手续费金额", example = "3.00") double feeAmount
+    ) {
+    }
+
+    @Schema(description = "最近动作响应")
+    public record OperationRecordResponse(
+        @Schema(description = "操作记录 ID", example = "op-001") String id,
+        @Schema(description = "基金代码", example = "000001") String fundCode,
+        @Schema(description = "基金名称", example = "华夏成长优选混合") String fundName,
+        @Schema(description = "操作类型，可能为 BUY / SELL / OPEN_POSITION / CLOSE_POSITION / SIP_BUY；手工买卖确认中阶段会先显示 BUY/SELL", example = "OPEN_POSITION") String operation,
+        @Schema(description = "操作来源", example = "MANUAL") String source,
+        @Schema(description = "状态，支持确认中 / 已执行", example = "确认中") String status,
+        @Schema(description = "交易日期", example = "2026-03-30") String tradeDate,
+        @Schema(description = "交易金额，确认中卖出阶段可能暂为 0", example = "2000") double amount,
+        @Schema(description = "份额变化，确认中买入阶段可能暂为 0", example = "1234.5600") double shares,
+        @Schema(description = "确认净值，确认中阶段为 0", example = "1.6234") double nav,
+        @Schema(description = "费率", example = "0.0015") double feeRate,
         @Schema(description = "手续费金额", example = "3.00") double feeAmount
     ) {
     }
@@ -85,7 +102,7 @@ public final class HoldingDtos {
     public record CreateHoldingOperationRequest(
         @Schema(description = "基金代码", example = "000001") @NotBlank String fundCode,
         @Schema(description = "操作类型，BUY 为按金额买入，SELL 为按份额卖出；后端会自动归类成建仓或清仓", example = "BUY") @NotBlank String operation,
-        @Schema(description = "交易日期，仅允许近 30 天；后端直接按该日期可用的确认净值执行", example = "2026-03-28") @NotBlank String tradeDate,
+        @Schema(description = "最终成交日，仅允许近 30 天内或下一交易日；若该日确认净值尚未公布则先记为确认中", example = "2026-03-31") @NotBlank String tradeDate,
         @Schema(description = "买入金额，仅 BUY 需要传", example = "2000") Double amount,
         @Schema(description = "卖出份额，仅 SELL 需要传", example = "300.50") Double shares,
         @Schema(description = "费率，按 0~1 传值", example = "0.0015") @NotNull @DecimalMin("0.0") @DecimalMax("1.0") Double feeRate,

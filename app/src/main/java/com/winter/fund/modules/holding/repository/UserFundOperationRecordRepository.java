@@ -12,6 +12,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface UserFundOperationRecordRepository extends JpaRepository<UserFundOperationRecordEntity, String> {
 
+    List<UserFundOperationRecordEntity> findTop12ByUserIdOrderByCreatedAtDesc(String userId);
+
     List<UserFundOperationRecordEntity> findTop12ByUserIdAndStatusOrderByCreatedAtDesc(String userId, String status);
 
     List<UserFundOperationRecordEntity> findByUserIdAndFundCodeAndStatusAndTradeDateBetweenOrderByTradeDateAscCreatedAtAsc(
@@ -37,6 +39,13 @@ public interface UserFundOperationRecordRepository extends JpaRepository<UserFun
     List<UserFundOperationRecordEntity> findBySourceAndStatusAndTradeDateLessThanEqualOrderByTradeDateAscCreatedAtAsc(
         String source,
         String status,
+        LocalDate tradeDate
+    );
+
+    List<UserFundOperationRecordEntity> findBySourceAndStatusAndFundCodeAndTradeDateOrderByCreatedAtAsc(
+        String source,
+        String status,
+        String fundCode,
         LocalDate tradeDate
     );
 
