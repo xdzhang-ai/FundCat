@@ -118,16 +118,19 @@ public class LegacyRocketMqFundNavReadyBatchConsumer implements SmartLifecycle {
                 try {
                     String body = new String(messageExt.getBody(), StandardCharsets.UTF_8);
                     FundNavReadyBatchMessage message = objectMapper.readValue(body, FundNavReadyBatchMessage.class);
-                    fundNavConfirmedConsumer.onFundNavReadyBatch(message);
+                    fundNavConfirmedConsumer.onRocketMqFundNavReadyBatch(messageExt.getMsgId(), message);
                     log.info(
-                        "RocketMQ legacy fund_nav_ready_batch consumed, messageId={}, navDate={}, fundCount={}",
+                        "RocketMQ legacy fund_nav_ready_batch accepted for async processing, messageId={}, navDate={}, fundCount={}",
                         messageExt.getMsgId(),
                         message.navDate(),
                         message.count()
                     );
                 } catch (Exception exception) {
-                    log.error("Failed to consume RocketMQ legacy fund_nav_ready_batch message, messageId={}", messageExt.getMsgId(), exception);
-                    return ConsumeConcurrentlyStatus.RECONSUME_LATER;
+                    log.error(
+                        "Failed to deserialize or dispatch RocketMQ legacy fund_nav_ready_batch message, messageId={}; message will be acknowledged without broker retry",
+                        messageExt.getMsgId(),
+                        exception
+                    );
                 }
             }
             return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;

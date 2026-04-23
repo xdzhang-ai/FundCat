@@ -1,23 +1,21 @@
 package com.winter.fund.infrastructure.marketdata;
 
-import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
 @Component
 public class FundNavConfirmedConsumer {
 
-    private final FundNavConfirmationService fundNavConfirmationService;
+    private final FundNavAsyncProcessingService asyncProcessingService;
 
-    public FundNavConfirmedConsumer(FundNavConfirmationService fundNavConfirmationService) {
-        this.fundNavConfirmationService = fundNavConfirmationService;
+    public FundNavConfirmedConsumer(FundNavAsyncProcessingService asyncProcessingService) {
+        this.asyncProcessingService = asyncProcessingService;
     }
 
     /**
-     * 批量基金 ready 消息的本地消费入口。
-     * 这里保留统一的业务消费落点，既可供本地事件触发，也可供 RocketMQ adapter 复用。
+     * RocketMQ adapter 的统一入口。
+     * 对 RocketMQ 消息优先使用 broker 分配的 messageId 做 Redis 粒度幂等。
      */
-    @EventListener
-    public void onFundNavReadyBatch(FundNavReadyBatchMessage message) {
-        fundNavConfirmationService.handleConfirmedNavBatch(message);
+    public void onRocketMqFundNavReadyBatch(String messageId, FundNavReadyBatchMessage message) {
+        asyncProcessingService.submit(messageId, message);
     }
 }
