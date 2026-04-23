@@ -23,7 +23,7 @@ import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 @Configuration
-@EnableConfigurationProperties({ AuthProperties.class, MarketDataProperties.class, AkshareBridgeProperties.class, PersistenceProperties.class })
+@EnableConfigurationProperties({ AuthProperties.class, MarketDataProperties.class, AkshareBridgeProperties.class, PersistenceProperties.class, RocketMqProperties.class })
 public class SecurityConfig {
 
     private final BearerTokenFilter bearerTokenFilter;

@@ -85,6 +85,7 @@ This repository uses `docker compose` for infrastructure services only:
 
 - MySQL 8.4
 - Redis 8.0
+- RocketMQ 5.3.2 (NameServer + Broker + Proxy + Dashboard)
 
 The API, web app, and admin app run from source by default.
 
@@ -99,10 +100,14 @@ Key variables:
 - `MYSQL_DATABASE`, `MYSQL_USER`, `MYSQL_PASSWORD`, `MYSQL_ROOT_PASSWORD`
 - `MYSQL_PORT`
 - `REDIS_PASSWORD`, `REDIS_PORT`
+- `ROCKETMQ_NAMESRV_PORT`, `ROCKETMQ_PROXY_PORT_8081`, `ROCKETMQ_DASHBOARD_PORT`
 - `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USERNAME`, `DB_PASSWORD`
+- `FUNDCAT_ROCKETMQ_ENABLED`, `FUNDCAT_ROCKETMQ_ENDPOINTS`
+- `FUNDCAT_PUBLISH_MODE`, `FUNDCAT_ROCKETMQ_TOPIC`, `FUNDCAT_ROCKETMQ_TAG`
 
 `docker-compose.yml` consumes the `MYSQL_*` and `REDIS_*` variables.  
 The API MySQL profile consumes the `DB_*` variables.
+RocketMQ local stack consumes the `ROCKETMQ_*` and `FUNDCAT_ROCKETMQ_*` variables.
 
 ### 2. Start MySQL and Redis
 
@@ -119,6 +124,28 @@ docker compose logs -f redis
 npm run infra:down
 sh ./scripts/infra-down.sh -v
 ```
+
+### 2.1 Start local RocketMQ + Dashboard
+
+```bash
+sh ./scripts/start-rocketmq.sh
+```
+
+Useful commands:
+
+```bash
+docker compose logs -f rocketmq-namesrv
+docker compose logs -f rocketmq-broker
+docker compose logs -f rocketmq-proxy
+docker compose logs -f rocketmq-dashboard
+sh ./scripts/stop-rocketmq.sh
+```
+
+Default local endpoints:
+
+- RocketMQ proxy: `127.0.0.1:18081`
+- RocketMQ dashboard: `http://127.0.0.1:18088`
+- RocketMQ broker 本地默认消息保留时间：`24h`
 
 ### 3. Run the API against Docker Redis
 
@@ -139,6 +166,31 @@ npm run dev:api:mysql
 ```
 
 If you changed ports or credentials in `.env`, the helper scripts will load matching `DB_*`, `REDIS_*`, and `AUTH_SESSION_STORE` values automatically.
+
+To enable RocketMQ consumer locally, also set in `.env`:
+
+```bash
+FUNDCAT_ROCKETMQ_ENABLED=true
+FUNDCAT_ROCKETMQ_CONSUMER_MODE=legacy
+FUNDCAT_ROCKETMQ_ENDPOINTS=127.0.0.1:19876
+FUNDCAT_ROCKETMQ_TOPIC=fund_nav_ready_batch
+FUNDCAT_ROCKETMQ_TAG=fund-nav-ready
+FUNDCAT_ROCKETMQ_CONSUMER_GROUP=fundcat-fund-nav-consumer
+```
+
+For local Docker Compose, Java consumer is currently recommended to run in `legacy` mode via NameServer.
+The v5 gRPC consumer code remains in the project for formal proxy environments.
+
+For the Python data service, set:
+
+```bash
+FUNDCAT_PUBLISH_MODE=rocketmq
+FUNDCAT_ROCKETMQ_PUBLISH_BACKEND=mqadmin
+FUNDCAT_ROCKETMQ_ENDPOINTS=127.0.0.1:19876
+FUNDCAT_ROCKETMQ_TOPIC=fund_nav_ready_batch
+FUNDCAT_ROCKETMQ_TAG=fund-nav-ready
+FUNDCAT_ROCKETMQ_PRODUCER_GROUP=fundcat-python-producer
+```
 
 ## Useful Local Endpoints
 

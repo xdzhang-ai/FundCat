@@ -7,6 +7,7 @@ package com.winter.fund.modules.ops.service;
 import com.winter.fund.modules.ops.model.FeatureFlagEntity;
 import com.winter.fund.modules.ops.model.JobRunEntity;
 import com.winter.fund.modules.ops.model.OpsDtos;
+import com.winter.fund.common.config.RocketMqProperties;
 import com.winter.fund.modules.ops.repository.FeatureFlagRepository;
 import com.winter.fund.modules.ops.repository.JobRunRepository;
 import com.winter.fund.common.exception.NotFoundException;
@@ -22,13 +23,16 @@ public class OpsService {
 
     private final FeatureFlagRepository featureFlagRepository;
     private final JobRunRepository jobRunRepository;
+    private final RocketMqProperties rocketMqProperties;
 
     public OpsService(
         FeatureFlagRepository featureFlagRepository,
-        JobRunRepository jobRunRepository
+        JobRunRepository jobRunRepository,
+        RocketMqProperties rocketMqProperties
     ) {
         this.featureFlagRepository = featureFlagRepository;
         this.jobRunRepository = jobRunRepository;
+        this.rocketMqProperties = rocketMqProperties;
     }
 
     /**
@@ -89,8 +93,10 @@ public class OpsService {
     public List<OpsDtos.ProviderStatusResponse> getProviders() {
         return List.of(new OpsDtos.ProviderStatusResponse(
             "python-fund-data-service",
-            "managed-via-python",
-            "Fund nav ingestion is produced by the Python data service and consumed in Java through ready events."
+            rocketMqProperties.isEnabled() ? "rocketmq-connected" : "waiting-rocketmq",
+            rocketMqProperties.isEnabled()
+                ? "Fund nav ingestion is produced by the Python data service and consumed in Java through RocketMQ ready events."
+                : "Fund nav ingestion is produced by the Python data service. RocketMQ is configured as the target event bus but is not enabled yet."
         ));
     }
 

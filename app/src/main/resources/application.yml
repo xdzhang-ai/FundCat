@@ -72,6 +72,17 @@ fundcat:
       base-url: ${AKSHARE_BRIDGE_BASE_URL:http://127.0.0.1:8000}
       connect-timeout: 5s
       read-timeout: 15s
+    rocketmq:
+      enabled: ${FUNDCAT_ROCKETMQ_ENABLED:false}
+      consumer-mode: ${FUNDCAT_ROCKETMQ_CONSUMER_MODE:v5}
+      endpoints: ${FUNDCAT_ROCKETMQ_ENDPOINTS:}
+      topic: ${FUNDCAT_ROCKETMQ_TOPIC:fund_nav_ready_batch}
+      tag: ${FUNDCAT_ROCKETMQ_TAG:fund-nav-ready}
+      consumer-group: ${FUNDCAT_ROCKETMQ_CONSUMER_GROUP:fundcat-fund-nav-consumer}
+      namespace: ${FUNDCAT_ROCKETMQ_NAMESPACE:}
+      access-key: ${FUNDCAT_ROCKETMQ_ACCESS_KEY:}
+      secret-key: ${FUNDCAT_ROCKETMQ_SECRET_KEY:}
+      ssl-enabled: ${FUNDCAT_ROCKETMQ_SSL_ENABLED:false}
   persistence:
     batch-size: ${FUNDCAT_PERSISTENCE_BATCH_SIZE:100}
 

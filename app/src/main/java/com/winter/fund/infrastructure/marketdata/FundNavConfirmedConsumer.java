@@ -14,7 +14,7 @@ public class FundNavConfirmedConsumer {
 
     /**
      * 批量基金 ready 消息的本地消费入口。
-     * 当前主要给未来 RocketMQ adapter 预留统一的业务落点。
+     * 这里保留统一的业务消费落点，既可供本地事件触发，也可供 RocketMQ adapter 复用。
      */
     @EventListener
     public void onFundNavReadyBatch(FundNavReadyBatchMessage message) {

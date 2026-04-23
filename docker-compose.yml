@@ -49,6 +49,58 @@ services:
       timeout: 5s
       retries: 10
 
+  rocketmq-namesrv:
+    image: apache/rocketmq:5.3.2
+    container_name: ${ROCKETMQ_NAMESRV_CONTAINER_NAME:-fundcat-rmq-namesrv}
+    restart: unless-stopped
+    command: sh mqnamesrv
+    ports:
+      - "${ROCKETMQ_NAMESRV_PORT:-19876}:9876"
+    networks:
+      - fundcat-rocketmq
+
+  rocketmq-broker:
+    image: apache/rocketmq:5.3.2
+    container_name: ${ROCKETMQ_BROKER_CONTAINER_NAME:-fundcat-rmq-broker}
+    restart: unless-stopped
+    command: sh mqbroker --enable-proxy -c /home/rocketmq/rocketmq-5.3.2/conf/fundcat-broker.conf
+    environment:
+      NAMESRV_ADDR: rocketmq-namesrv:9876
+    depends_on:
+      - rocketmq-namesrv
+    ports:
+      - "${ROCKETMQ_PROXY_PORT_8080:-18080}:8080"
+      - "${ROCKETMQ_PROXY_PORT_8081:-18081}:8081"
+      - "${ROCKETMQ_BROKER_PORT_10909:-19009}:10909"
+      - "${ROCKETMQ_BROKER_PORT_10911:-19011}:19011"
+      - "${ROCKETMQ_BROKER_PORT_10912:-19012}:10912"
+      - "${ROCKETMQ_PROXY_PORT_8080:-18080}:8080"
+      - "${ROCKETMQ_PROXY_PORT_8081:-18081}:8081"
+    volumes:
+      - ./config/rocketmq/broker.conf:/home/rocketmq/rocketmq-5.3.2/conf/fundcat-broker.conf:ro
+    networks:
+      - fundcat-rocketmq
+
+  rocketmq-dashboard:
+    image: apacherocketmq/rocketmq-dashboard:2.1.0
+    container_name: ${ROCKETMQ_DASHBOARD_CONTAINER_NAME:-fundcat-rmq-dashboard}
+    restart: unless-stopped
+    environment:
+      JAVA_OPTS: >-
+        -Drocketmq.namesrv.addr=rocketmq-namesrv:9876
+        -Drocketmq.proxy.addr=rocketmq-broker:8081
+        -Dcom.rocketmq.sendMessageWithVIPChannel=false
+    depends_on:
+      - rocketmq-namesrv
+      - rocketmq-broker
+    ports:
+      - "${ROCKETMQ_DASHBOARD_PORT:-18088}:8082"
+    networks:
+      - fundcat-rocketmq
+
 volumes:
   mysql-data:
   redis-data:
+
+networks:
+  fundcat-rocketmq:
