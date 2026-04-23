@@ -6,7 +6,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 public class RocketMqProperties {
 
     private boolean enabled = false;
-    private String consumerMode = "v5";
+    private String consumerMode = "legacy";
     private String endpoints = "";
     private String topic = "fund_nav_ready_batch";
     private String tag = "fund-nav-ready";

@@ -14,6 +14,7 @@ fi
 NAMESRV_CONTAINER=${ROCKETMQ_NAMESRV_CONTAINER_NAME:-fundcat-rmq-namesrv}
 BROKER_CONTAINER=${ROCKETMQ_BROKER_CONTAINER_NAME:-fundcat-rmq-broker}
 DASHBOARD_CONTAINER=${ROCKETMQ_DASHBOARD_CONTAINER_NAME:-fundcat-rmq-dashboard}
+ROCKETMQ_CLUSTER_NAME=${ROCKETMQ_CLUSTER_NAME:-DefaultCluster}
 WAIT_SECONDS=${INFRA_WAIT_SECONDS:-120}
 ROCKETMQ_TOPIC=${FUNDCAT_ROCKETMQ_TOPIC:-fund_nav_ready_batch}
 BROKER_CONF_FILE="$ROOT_DIR/config/rocketmq/broker.conf"
@@ -57,20 +58,11 @@ wait_for_running() {
 
 echo "Starting RocketMQ namesrv, broker(with proxy) and dashboard..."
 HOST_IP=$(resolve_host_ip)
-python3 - "$BROKER_CONF_FILE" "$HOST_IP" <<'PY'
-from pathlib import Path
-import re
-import sys
-
-conf_path = Path(sys.argv[1])
-host_ip = sys.argv[2]
-text = conf_path.read_text()
-updated = re.sub(r"^brokerIP1\s*=.*$", f"brokerIP1 = {host_ip}", text, flags=re.MULTILINE)
-if updated == text:
-    updated = text.rstrip() + f"\nbrokerIP1 = {host_ip}\n"
-conf_path.write_text(updated)
-print(f"Updated brokerIP1 to {host_ip}")
-PY
+TMP_BROKER_CONF=$(mktemp)
+grep -v '^brokerIP1[[:space:]]*=' "$BROKER_CONF_FILE" > "$TMP_BROKER_CONF" || true
+printf '\nbrokerIP1 = %s\n' "$HOST_IP" >> "$TMP_BROKER_CONF"
+mv "$TMP_BROKER_CONF" "$BROKER_CONF_FILE"
+echo "Updated brokerIP1 to $HOST_IP"
 sh "$ROOT_DIR/scripts/infra-up.sh" rocketmq-namesrv rocketmq-broker rocketmq-dashboard
 
 echo "Waiting for RocketMQ components to become running..."
@@ -80,7 +72,7 @@ wait_for_running "$DASHBOARD_CONTAINER" "$WAIT_SECONDS"
 
 echo "Ensuring local topic exists: $ROCKETMQ_TOPIC"
 docker exec "$BROKER_CONTAINER" sh -lc \
-  "/home/rocketmq/rocketmq-5.3.2/bin/mqadmin updateTopic -n rocketmq-namesrv:9876 -b $HOST_IP:19011 -t $ROCKETMQ_TOPIC" >/dev/null
+  "/home/rocketmq/rocketmq-5.3.2/bin/mqadmin updateTopic -n rocketmq-namesrv:9876 -c $ROCKETMQ_CLUSTER_NAME -t $ROCKETMQ_TOPIC" >/dev/null
 
 echo "RocketMQ local stack is up."
 echo "Proxy endpoint: ${FUNDCAT_ROCKETMQ_ENDPOINTS:-127.0.0.1:${ROCKETMQ_PROXY_PORT_8081:-18081}}"

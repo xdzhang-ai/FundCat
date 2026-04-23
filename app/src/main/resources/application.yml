@@ -1,12 +1,12 @@
-# 应用默认配置文件，主要用于本地 H2 与通用运行参数。
+# 应用默认配置文件，使用 MySQL 作为主数据源并承载通用运行参数。
 spring:
   application:
     name: fundcat-api
   datasource:
-    url: jdbc:h2:mem:fundcat;MODE=MySQL;DB_CLOSE_DELAY=-1;DATABASE_TO_LOWER=TRUE
-    username: sa
-    password:
-    driver-class-name: org.h2.Driver
+    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:fundcat}?useUnicode=true&characterEncoding=utf8&connectionTimeZone=LOCAL&forceConnectionTimeZoneToSession=true
+    username: ${DB_USERNAME:fundcat}
+    password: ${DB_PASSWORD:change-me-app-password}
+    driver-class-name: com.mysql.cj.jdbc.Driver
   jpa:
     open-in-view: false
     hibernate:
@@ -20,17 +20,18 @@ spring:
         order_updates: true
   flyway:
     enabled: true
+    locations: classpath:db/migration,classpath:db/migration-mysql
   h2:
     console:
-      enabled: true
+      enabled: false
       path: /h2-console
   jackson:
     time-zone: ${APP_TIMEZONE:${user.timezone:UTC}}
   data:
     redis:
-      host: localhost
-      port: 6379
-      password: ${REDIS_PASSWORD:}
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:change-me-redis-password}
       repositories:
         enabled: false
   task:
@@ -55,7 +56,7 @@ fundcat:
   auth:
     access-token-ttl-minutes: 240
     refresh-token-ttl-days: 14
-    session-store: ${AUTH_SESSION_STORE:memory}
+    session-store: ${AUTH_SESSION_STORE:redis}
   market-data:
     timezone: ${APP_TIMEZONE:${user.timezone:UTC}}
     estimate-poll-interval-minutes: 5
@@ -74,7 +75,7 @@ fundcat:
       read-timeout: 15s
     rocketmq:
       enabled: ${FUNDCAT_ROCKETMQ_ENABLED:false}
-      consumer-mode: ${FUNDCAT_ROCKETMQ_CONSUMER_MODE:v5}
+      consumer-mode: ${FUNDCAT_ROCKETMQ_CONSUMER_MODE:legacy}
       endpoints: ${FUNDCAT_ROCKETMQ_ENDPOINTS:}
       topic: ${FUNDCAT_ROCKETMQ_TOPIC:fund_nav_ready_batch}
       tag: ${FUNDCAT_ROCKETMQ_TAG:fund-nav-ready}

@@ -59,10 +59,10 @@ export JAVA_HOME=$(/usr/libexec/java_home -v 21)
 npm_config_cache=.npm-cache npm install
 ```
 
-### 2. 使用默认 H2 配置启动 API
+### 2. 使用默认 MySQL 配置启动 API
 
 ```bash
-sh ./scripts/run-api.sh h2
+sh ./scripts/run-api.sh mysql
 ```
 
 ### 3. 启动主站
@@ -85,6 +85,7 @@ npm_config_cache=./.npm-cache npm run dev:admin
 
 - MySQL 8.4
 - Redis 8.0
+- RocketMQ 5.3.2（NameServer + Broker + Proxy + Dashboard）
 
 API、主站和后台默认仍从源码启动，这样本地开发反馈更快。
 
@@ -106,11 +107,19 @@ cp .env.example .env
 - `docker-compose.yml` 读取 `MYSQL_*` 和 `REDIS_*`
 - API 的 MySQL profile 读取 `DB_*`
 
-### 2. 启动 MySQL 与 Redis
+### 2. 启动本地 Docker 基础设施
 
 ```bash
-npm run infra:up
+sh ./scripts/start-docker.sh
 ```
+
+这个统一入口现在会一起启动并检查：
+
+- MySQL
+- Redis
+- RocketMQ NameServer
+- RocketMQ Broker（同容器内开启 Proxy）
+- RocketMQ Dashboard
 
 常用命令：
 
@@ -118,8 +127,18 @@ npm run infra:up
 docker compose ps
 docker compose logs -f mysql
 docker compose logs -f redis
+docker compose logs -f rocketmq-namesrv
+docker compose logs -f rocketmq-broker
+docker compose logs -f rocketmq-dashboard
 npm run infra:down
 sh ./scripts/infra-down.sh -v
+```
+
+如果只想单独重启 RocketMQ，也可以继续使用：
+
+```bash
+sh ./scripts/start-rocketmq.sh
+sh ./scripts/stop-rocketmq.sh
 ```
 
 ### 3. 让 API 连接 Docker Redis
@@ -132,7 +151,7 @@ npm run dev:api:redis
 
 - `.env` 中的 `REDIS_*` 和 `AUTH_SESSION_STORE`
 - Docker 中的 Redis
-- 默认的 H2 内存数据库
+- `application.yml` 中默认的 MySQL 数据源
 
 ### 4. 让 API 连接 MySQL + Redis
 
@@ -141,6 +160,20 @@ npm run dev:api:mysql
 ```
 
 如果你在 `.env` 里修改了端口或账号密码，这些辅助脚本会自动加载对应的 `DB_*`、`REDIS_*` 和 `AUTH_SESSION_STORE` 变量。
+
+如需本地启用 RocketMQ consumer，可在 `.env` 中加入：
+
+```bash
+FUNDCAT_ROCKETMQ_ENABLED=true
+FUNDCAT_ROCKETMQ_CONSUMER_MODE=legacy
+FUNDCAT_ROCKETMQ_ENDPOINTS=127.0.0.1:19876
+FUNDCAT_ROCKETMQ_TOPIC=fund_nav_ready_batch
+FUNDCAT_ROCKETMQ_TAG=fund-nav-ready
+FUNDCAT_ROCKETMQ_CONSUMER_GROUP=fundcat-fund-nav-consumer
+```
+
+本地 Docker Compose 下，Java consumer 现在默认使用通过 NameServer 的 `legacy` 模式。
+如果你想显式切到 v5 gRPC consumer，需要手动设置 `FUNDCAT_ROCKETMQ_CONSUMER_MODE=v5`，并保证 proxy 环境稳定。
 
 ## 本地访问地址
 
@@ -158,8 +191,8 @@ npm run dev:api:mysql
 
 ## 配置说明
 
-- 本地开发默认使用 H2 内存数据库，承载初始化后的演示业务数据，包括用户、基金、自选、组合、订单、定投、OCR 任务、周报、提醒和 Feature Flag。
-- 接入 MySQL 时使用 Spring `mysql` profile。
+- 本地与开发环境现在默认使用 MySQL 作为主数据源。
+- H2 控制台默认关闭，也不再需要单独的 Spring `mysql` profile。
 - OCR 目前是流程占位，没有写死第三方 OCR 服务商。
 - 买入、卖出、定投均为模拟流程，不涉及真实交易。
 - 高风险研究能力通过 Feature Flag 隔离。

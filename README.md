@@ -59,10 +59,10 @@ export JAVA_HOME=$(/usr/libexec/java_home -v 21)
 npm_config_cache=.npm-cache npm install
 ```
 
-### 2. Start the API with the default H2 profile
+### 2. Start the API with the default MySQL configuration
 
 ```bash
-sh ./scripts/run-api.sh h2
+sh ./scripts/run-api.sh mysql
 ```
 
 ### 3. Start the web app
@@ -109,11 +109,19 @@ Key variables:
 The API MySQL profile consumes the `DB_*` variables.
 RocketMQ local stack consumes the `ROCKETMQ_*` and `FUNDCAT_ROCKETMQ_*` variables.
 
-### 2. Start MySQL and Redis
+### 2. Start local Docker infrastructure
 
 ```bash
-npm run infra:up
+sh ./scripts/start-docker.sh
 ```
+
+This unified entrypoint now starts and checks all required local containers:
+
+- MySQL
+- Redis
+- RocketMQ NameServer
+- RocketMQ Broker (with proxy enabled in the same container)
+- RocketMQ Dashboard
 
 Useful commands:
 
@@ -121,23 +129,17 @@ Useful commands:
 docker compose ps
 docker compose logs -f mysql
 docker compose logs -f redis
+docker compose logs -f rocketmq-namesrv
+docker compose logs -f rocketmq-broker
+docker compose logs -f rocketmq-dashboard
 npm run infra:down
 sh ./scripts/infra-down.sh -v
 ```
 
-### 2.1 Start local RocketMQ + Dashboard
+If you only want to restart RocketMQ, you can still use:
 
 ```bash
 sh ./scripts/start-rocketmq.sh
-```
-
-Useful commands:
-
-```bash
-docker compose logs -f rocketmq-namesrv
-docker compose logs -f rocketmq-broker
-docker compose logs -f rocketmq-proxy
-docker compose logs -f rocketmq-dashboard
 sh ./scripts/stop-rocketmq.sh
 ```
 
@@ -157,7 +159,7 @@ This mode uses:
 
 - `.env` for `REDIS_*` and `AUTH_SESSION_STORE`
 - Docker Redis on port `6379`
-- the default H2 in-memory database
+- the default MySQL datasource from `application.yml`
 
 ### 4. Run the API against MySQL + Redis
 
@@ -178,8 +180,8 @@ FUNDCAT_ROCKETMQ_TAG=fund-nav-ready
 FUNDCAT_ROCKETMQ_CONSUMER_GROUP=fundcat-fund-nav-consumer
 ```
 
-For local Docker Compose, Java consumer is currently recommended to run in `legacy` mode via NameServer.
-The v5 gRPC consumer code remains in the project for formal proxy environments.
+For local Docker Compose, Java consumer defaults to `legacy` mode via NameServer.
+If you explicitly want the v5 gRPC consumer, set `FUNDCAT_ROCKETMQ_CONSUMER_MODE=v5` and provide a stable proxy environment.
 
 For the Python data service, set:
 
@@ -208,8 +210,8 @@ FUNDCAT_ROCKETMQ_PRODUCER_GROUP=fundcat-python-producer
 
 ## Configuration Notes
 
-- H2 is used by default for local development as an in-memory database holding seeded demo business data, including users, funds, watchlists, portfolios, orders, SIP plans, OCR jobs, reports, alerts, and feature flags.
-- MySQL is activated with the `mysql` Spring profile.
+- MySQL is now the default local and development datasource.
+- The H2 console is disabled by default and no separate MySQL Spring profile is required.
 - OCR is modeled as a workflow placeholder; no third-party OCR vendor is hardcoded.
 - Buy, sell, and SIP flows are simulated only.
 - High-risk research capabilities are isolated behind feature flags.

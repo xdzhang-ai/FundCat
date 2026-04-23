@@ -34,23 +34,18 @@ export PATH
 cd "$API_DIR"
 
 case "$MODE" in
-  h2)
+  memory)
     AUTH_SESSION_STORE=memory
     export AUTH_SESSION_STORE
     exec mvn spring-boot:run
     ;;
-  redis)
+  redis|mysql)
     AUTH_SESSION_STORE=redis
     export AUTH_SESSION_STORE
     exec mvn spring-boot:run
     ;;
-  mysql)
-    AUTH_SESSION_STORE=redis
-    export AUTH_SESSION_STORE
-    exec mvn spring-boot:run -Dspring-boot.run.profiles=mysql
-    ;;
   *)
-    echo "Usage: sh ./scripts/run-api.sh [mysql|redis|h2]" >&2
+    echo "Usage: sh ./scripts/run-api.sh [mysql|redis|memory]" >&2
     exit 1
     ;;
 esac
